@@ -2,6 +2,10 @@ import cPickle as pkl
 import numpy as np
 import glob
 import matplotlib.pyplot as plt
+from SN_Rate import *
+from scipy import interpolate
+from scipy.interpolate import UnivariateSpline
+from scipy.integrate import quad
 
 class Id:
     def __init__(self,thedir,fieldname,fieldid,X1,Color,season,colorfig):
@@ -36,11 +40,14 @@ class Id:
         return self.colorfig
 
 class Ana_Simu:
-    def __init__(self, dict_ana):
+    def __init__(self, dict_ana,zmin=0.,zmax=1.2):
 
         thedir='Prod_LC'
 
         tot_resu={}
+
+        self.zmin=zmin
+        self.zmax=zmax
 
         for key, val in dict_ana.items():
             print 'hee',val.thedir
@@ -62,7 +69,7 @@ class Ana_Simu:
         #self.Plot_Sims(tot_resu)
 
         
-        figa, axa = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+        figa, axa = plt.subplots(ncols=1, nrows=2, figsize=(10,9))
         figc, axc = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
         #figbb, axbb = plt.subplots(ncols=2, nrows=2, figsize=(10,9))
         col=['k','r','b']
@@ -107,10 +114,12 @@ class Ana_Simu:
             axbb[j/2][k].set_ylabel(r'Number of Entries',{'fontsize': fontsize})
             print vals,np.mean(tab_resu[vals]),np.std(tab_resu[vals])
 
-    def Histo_ratio(self,sela,selb,varname):
+    def Histo_ratio(self,sela,selb,varname,):
 
-        num_bins=36
-        range=[0.0,1.2]
+        range=[self.zmin,self.zmax]
+        bin_width=0.01
+        num_bins=int((range[1]-range[0])/bin_width)
+        #range=[0.0,1.2]
         
         hista, bin_edgesa = np.histogram(sela[varname],bins=num_bins,range=range)
         histb, bin_edgesb = np.histogram(selb[varname],bins=num_bins,range=range)
@@ -140,13 +149,36 @@ class Ana_Simu:
         #figc, axc = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
         self.Plot_Eff_Indiv(axc,sela,selb,varname,tot_label,'test',color)
         
-
-
     def Plot_Eff_Indiv(self,axc,sela,selb,varname,tot_label,ll,color):
 
         bin_center, ratio, ratio_err,norm,norm_err= self.Histo_ratio(sela,selb,varname)
         #tot_label.append(axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=marker, mfc=colors[key], mec=colors[key], ms=8, linestyle=myfmt[i],color='k',label=ll))
-        tot_label.append(axc.errorbar(bin_center,ratio, yerr=ratio_err,marker='.', mfc='red', mec='red', ms=8, linestyle='-',color=color,label=ll))
+        axc[0].errorbar(bin_center,ratio, yerr=ratio_err,marker='.', mfc='red', mec='red', ms=8, linestyle='-',color=color,label=ll)
+        axc[0].set_xlabel('z')
+        axc[0].set_ylabel('Efficiency')
+
+        effi = interpolate.interp1d(bin_center,ratio)
+
+        sn_rate=SN_Rate()
+
+        zz,rate,nsn=sn_rate(self.zmin,self.zmax,0.001)
+        
+        nsn_season = interpolate.interp1d(zz,nsn)
+
+        zrange=np.arange(self.zmin+0.01,self.zmax-0.02,0.00001)
+        #print effi(zrange),nsn_season(zrange)
+
+        #fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+        axc[1].plot(zrange,nsn_season(zrange))
+        axc[1].plot(zrange,nsn_season(zrange)*effi(zrange),'r')
+        #axc[1].set_yscale('log')
+        axc[1].set_xlabel('z')
+        axc[1].set_ylabel('Number of SN Ia')
+        
+        spl = UnivariateSpline(zrange,nsn_season(zrange)*effi(zrange))
+        effib=interpolate.interp1d(zrange,nsn_season(zrange)*effi(zrange))
+        print 'there we go',np.min(zrange),np.max(zrange),spl.integral(0,np.inf),np.sum(nsn_season(zrange)*effi(zrange)),len(zrange),quad(effib,np.min(zrange),np.max(zrange))[0]
+        
 
     def Plot(self, axc,sel,vary,varx,color):
         print 'there',sel[varx],sel[vary]
@@ -154,10 +186,10 @@ class Ana_Simu:
 
 dict_ana={}
 
-dict_ana['Mean_Obs_Faint_T0_0']=Id(thedir='Mean_Obs_T0_0',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
-dict_ana['Mean_Obs']=Id(thedir='Mean_Obs',fieldname='WFD',fieldid=309,X1=-999.,Color=-999.,season=0,colorfig='r')
+#dict_ana['Mean_Obs_Faint_T0_0']=Id(thedir='Mean_Obs_T0_0',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
+#dict_ana['Mean_Obs']=Id(thedir='Mean_Obs',fieldname='WFD',fieldid=309,X1=-999.,Color=-999.,season=0,colorfig='r')
 
 dict_ana['Rolling_Faint']=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=1,colorfig='b')
-dict_ana['Mean_Obs_Faint_newrefs']=Id(thedir='Mean_Obs_newrefs',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
+#dict_ana['Mean_Obs_Faint_newrefs']=Id(thedir='Mean_Obs_newrefs',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
 
-Ana_Simu(dict_ana)
+Ana_Simu(dict_ana,zmin=0.,zmax=0.5)
