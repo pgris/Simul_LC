@@ -171,13 +171,15 @@ class Generate_LC:
                 
                 self.table_for_fit.add_row((mjds[i],flux_SN,err_flux_SN,'LSST::'+filtre,25,'ab'))
 
-            #print 'hello',r
-        self.lc[filtre]=np.rec.fromrecords(r, names = ['flux','mjd','flux_SN'])
+        #print 'hello',r
+        #self.lc[filtre]=np.rec.fromrecords(r, names = ['flux','mjd','flux_SN'])
 
         #print 'yyyy',len(self.lc[filtre]),self.lc[filtre]['flux_SN']
        
-        
-        res=np.rec.fromrecords(r, names = ['flux','mjd','flux_SN'])
+        if len(r)> 0:
+            res=np.rec.fromrecords(r, names = ['flux','mjd','flux_SN'])
+        else:
+            res=None
         out_q.put({filtre :(res,self.table_for_fit)})
         
         return res

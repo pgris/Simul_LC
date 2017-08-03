@@ -6,6 +6,7 @@ from SN_Rate import *
 from scipy import interpolate
 from scipy.interpolate import UnivariateSpline
 from scipy.integrate import quad
+import os
 
 class Id:
     def __init__(self,thedir,fieldname,fieldid,X1,Color,season,colorfig):
@@ -52,15 +53,28 @@ class Ana_Simu:
         for key, val in dict_ana.items():
             print 'hee',val.thedir
             dirmeas=thedir+'/'+val.thedir+'/Season_'+str(val.season)
-            files = glob.glob(dirmeas+'/'+val.fieldname+'_'+str(val.fieldid)+'*_X1_'+str(val.X1)+'_C_'+str(val.Color)+'*.pkl')
+            sum_file=dirmeas+'/'+val.fieldname+'_'+str(val.fieldid)+'_X1_'+str(val.X1)+'_C_'+str(val.Color)+'_all.pkl'
+
+            if os.path.exists(sum_file):
+                pkl_file = open(sum_file,'rb')
+                tot_resu[key]=pkl.load(pkl_file)
+            else:
+
+                files = glob.glob(dirmeas+'/'+val.fieldname+'_'+str(val.fieldid)+'*_X1_'+str(val.X1)+'_C_'+str(val.Color)+'*.pkl')
         
-            for fi in files:
-                pkl_file = open(fi,'rb')
-                print 'loading',fi
-                if not key in tot_resu.keys():
-                    tot_resu[key]=pkl.load(pkl_file)
-                else:
-                    tot_resu[key]=np.vstack((tot_resu[key],pkl.load(pkl_file)))
+                for fi in files:
+                    pkl_file = open(fi,'rb')
+                    print 'loading',fi
+                    if not key in tot_resu.keys():
+                        tot_resu[key]=pkl.load(pkl_file)
+                    else:
+                        tot_resu[key]=np.vstack((tot_resu[key],pkl.load(pkl_file)))
+                pkl_out = open(sum_file,'wb')
+    
+                pkl.dump(tot_resu[key], pkl_out)
+                
+                pkl_out.close()
+       
 
             print 'there',len(tot_resu[key]),tot_resu[key].dtype
         
@@ -70,11 +84,13 @@ class Ana_Simu:
 
         
         figa, axa = plt.subplots(ncols=1, nrows=2, figsize=(10,9))
-        figc, axc = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+        #figc, axc = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
         #figbb, axbb = plt.subplots(ncols=2, nrows=2, figsize=(10,9))
         col=['k','r','b']
+        idraw=-1
         for key, val in tot_resu.items():
             #self.Plot_Sims(axbb,val)
+            idraw+=1
             sel=val[np.where(np.logical_and(val['N_bef']>=4,val['N_aft']>=10))]
             sel=sel[np.where(np.logical_and(sel['status']=='go_fit',sel['fit_status']=='fit_ok'))]
             sel=sel[np.where(np.logical_and(sel['phase_first']<=-5,sel['phase_last']>=20))]
@@ -86,9 +102,9 @@ class Ana_Simu:
             sela=tot_resu[np.where(np.logical_and(tot_resu['X1']==val[0],tot_resu['Color']==val[1]))]
             selc=sel[np.where(np.logical_and(sel['X1']==val[0],sel['Color']==val[1]))]
             """
-            self.Plot_Eff(axa,val,sel,'z',dict_ana[key].colorfig)
-            self.Plot(axc,sel,'salt2.CovColorColor','z',dict_ana[key].colorfig)
-            print 'Number of Events',val[0],val[1],len(val)
+            self.Plot_Eff(axa,val,sel,'z',dict_ana[key].colorfig,dict_ana[key].season,key,idraw)
+            #self.Plot(axc,sel,'salt2.CovColorColor','z',dict_ana[key].colorfig)
+            #print 'Number of Events',val[0],val[1],len(val)
             for vval in np.arange(0.,0.7,0.1):
                 ssel=val[np.where(np.logical_and(val['z']>=vval,val['z']<vval+0.1))]
                 print vval,vval+0.1,len(ssel)
@@ -114,7 +130,7 @@ class Ana_Simu:
             axbb[j/2][k].set_ylabel(r'Number of Entries',{'fontsize': fontsize})
             print vals,np.mean(tab_resu[vals]),np.std(tab_resu[vals])
 
-    def Histo_ratio(self,sela,selb,varname,):
+    def Histo_ratio(self,sela,selb,varname):
 
         range=[self.zmin,self.zmax]
         bin_width=0.01
@@ -144,41 +160,47 @@ class Ana_Simu:
     
         return bin_center, ratio, ratio_err,norm,norm_err
 
-    def Plot_Eff(self,axc,sela,selb,varname,color):
+    def Plot_Eff(self,axc,sela,selb,varname,color,season,ll,idraw):
         tot_label=[]
         #figc, axc = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
-        self.Plot_Eff_Indiv(axc,sela,selb,varname,tot_label,'test',color)
+        self.Plot_Eff_Indiv(axc,sela,selb,varname,tot_label,ll,color,season,idraw)
         
-    def Plot_Eff_Indiv(self,axc,sela,selb,varname,tot_label,ll,color):
+    def Plot_Eff_Indiv(self,axc,sela,selb,varname,tot_label,ll,color,season,idraw):
 
         bin_center, ratio, ratio_err,norm,norm_err= self.Histo_ratio(sela,selb,varname)
         #tot_label.append(axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=marker, mfc=colors[key], mec=colors[key], ms=8, linestyle=myfmt[i],color='k',label=ll))
         axc[0].errorbar(bin_center,ratio, yerr=ratio_err,marker='.', mfc='red', mec='red', ms=8, linestyle='-',color=color,label=ll)
         axc[0].set_xlabel('z')
         axc[0].set_ylabel('Efficiency')
-
+        axc[0].legend(loc='best',prop={'size':12})
         effi = interpolate.interp1d(bin_center,ratio)
 
         sn_rate=SN_Rate()
 
-        zz,rate,nsn=sn_rate(self.zmin,self.zmax,0.001)
+        zz,rate,nsn=sn_rate(self.zmin,self.zmax,0.01)
         
+        print 'Nsn',np.sum(nsn)
+
         nsn_season = interpolate.interp1d(zz,nsn)
 
-        zrange=np.arange(self.zmin+0.01,self.zmax-0.02,0.00001)
-        #print effi(zrange),nsn_season(zrange)
+        combi=nsn_season(zz)*effi(zz)
+        yerr_combi=np.power(np.power(ratio_err*nsn_season(zz),2.)+np.power(0.1*nsn_season(zz)*effi(zz),2.),0.5)
 
-        #fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
-        axc[1].plot(zrange,nsn_season(zrange))
-        axc[1].plot(zrange,nsn_season(zrange)*effi(zrange),'r')
+        print 'Number of SN Ia',np.sum(combi),np.power(np.sum(np.power(yerr_combi,2.)),0.5)
+        N_sn=np.sum(combi)
+        err_N_sn=np.power(np.sum(np.power(yerr_combi,2.)),0.5)
+        #axc[1].plot(zz,nsn,'b+')
+        #axc[1].plot(zz,nsn_season(zz),marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='black')
+        if idraw == 0:
+            axc[1].errorbar(zz,nsn_season(zz),yerr=0.1*nsn_season(zz),marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='black',label='N$_{SN Ia}$ expected (Ripoche rate)')
+        #axc[1].plot(zz,nsn_season(zz)*effi(zz),marker='.', mfc='red', mec='red', ms=8, linestyle='-',color=color)
+        
+        ll='Y'+str(season+1)+' - N$_{SN Ia}$ = '+str(int(N_sn))+'$\pm$'+str(int(err_N_sn))
+        axc[1].errorbar(zz,combi,yerr=yerr_combi,marker='.', mfc='red', mec='red', ms=8, linestyle='-',color=color,label=ll)
         #axc[1].set_yscale('log')
         axc[1].set_xlabel('z')
         axc[1].set_ylabel('Number of SN Ia')
-        
-        spl = UnivariateSpline(zrange,nsn_season(zrange)*effi(zrange))
-        effib=interpolate.interp1d(zrange,nsn_season(zrange)*effi(zrange))
-        print 'there we go',np.min(zrange),np.max(zrange),spl.integral(0,np.inf),np.sum(nsn_season(zrange)*effi(zrange)),len(zrange),quad(effib,np.min(zrange),np.max(zrange))[0]
-        
+        axc[1].legend(loc='best',prop={'size':12})
 
     def Plot(self, axc,sel,vary,varx,color):
         print 'there',sel[varx],sel[vary]
@@ -189,7 +211,10 @@ dict_ana={}
 #dict_ana['Mean_Obs_Faint_T0_0']=Id(thedir='Mean_Obs_T0_0',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
 #dict_ana['Mean_Obs']=Id(thedir='Mean_Obs',fieldname='WFD',fieldid=309,X1=-999.,Color=-999.,season=0,colorfig='r')
 
-dict_ana['Rolling_Faint']=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=1,colorfig='b')
+
+dict_ana['Rolling_Faint_Seas1']=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
+dict_ana['Rolling_Faint_Seas2']=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=1,colorfig='b')
+dict_ana['Rolling_Faint_Seas5']=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=4,colorfig='g')
 #dict_ana['Mean_Obs_Faint_newrefs']=Id(thedir='Mean_Obs_newrefs',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
 
 Ana_Simu(dict_ana,zmin=0.,zmax=0.5)

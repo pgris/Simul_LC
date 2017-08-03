@@ -122,6 +122,8 @@ for i in range(0,n_batch):
             tot_obs=resultdict[j]
             #print 'there',tot_obs
         else:
+            #print 'careful',tot_obs.dtype
+            #print 'carefulb',resultdict[j].dtype
             tot_obs=np.vstack((tot_obs,resultdict[j]))
 
     pkl_file = open(outdir+'/'+name_for_output+'.pkl','wb')

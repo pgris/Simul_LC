@@ -4,10 +4,10 @@ from matplotlib.ticker import FormatStrFormatter
 
 rate=SN_Rate()
 
-zz,rate_one,nsn=rate(0.001,1.2,0.01)
+zz,rate_one,nsn=rate(0.001,1.2,0.0001)
 
-rateb=SN_Rate(rate='Perret')
-zzb,rate_two,nsnb=rateb(0.001,1.2,0.01)
+rateb=SN_Rate(rate='Ripoche')
+zzb,rate_two,nsnb=rateb(0.001,1.2,0.1)
 
 print zz, nsn
 
@@ -21,12 +21,13 @@ axbb.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
 plt.legend(loc='best')
 
 figc, axc = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
-axc.plot(zz,nsn,label='Ripoche rate')
-axc.plot(zzb,nsnb,label='Perret rate')
+axc.plot(zz,nsn,'ko',label='Ripoche rate')
+axc.plot(zzb,nsnb,'ro',label='Perret rate')
 axc.set_yscale('log')
 axc.set_xlabel('Redshift')
 axc.set_ylabel('N(SNe Ia) - one year (effective search duration=0.5)')
 #axc.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
 plt.legend(loc='best')
 
+print 'Tot nsn',np.sum(nsn),np.sum(nsnb)
 plt.show()

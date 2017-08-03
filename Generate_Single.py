@@ -85,10 +85,11 @@ class Generate_Single_LC:
     
         self.tot_obs=None
         for b in self.bands_rest:
-            if self.tot_obs is None:
-                self.tot_obs=resultdict[b][1]
-            else:
-                self.tot_obs=vstack([self.tot_obs,resultdict[b][1]])
+            if resultdict[b][1] is not None:
+                if self.tot_obs is None:
+                    self.tot_obs=resultdict[b][1]
+                else:
+                    self.tot_obs=vstack([self.tot_obs,resultdict[b][1]])
 
         self.outdict['observations']=self.tot_obs
 
@@ -126,25 +127,33 @@ class Generate_Single_LC:
     def Get_Quality_LC(self):
 
         #estimate the number of LC points (5 sigma) before and after T0 - observer frame
-
-        obs_sel=self.tot_obs[np.where(np.logical_and(self.tot_obs['flux']/self.tot_obs['fluxerr']>5.,self.tot_obs['flux']>0.))]
+        for band in self.bands_rest:
+            self.dict_quality[band]=(0,0)
+        self.dict_quality['all']=(0,0)
+        self.dict_quality['phase']=(0.0,0.0)
+        
+        if self.tot_obs is not None:
+            obs_sel=self.tot_obs[np.where(np.logical_and(self.tot_obs['flux']/self.tot_obs['fluxerr']>5.,self.tot_obs['flux']>0.))]
         
         #print self.Get_nums(obs_sel)
-        n_bef_tot=0
-        n_aft_tot=0
-        for band in self.bands_rest:
-            idx=obs_sel['band']=='LSST::'+band
-            n_bef, n_aft=self.Get_nums(obs_sel[idx])
+            if len(obs_sel) > 0:
+                n_bef_tot=0
+                n_aft_tot=0
+                for band in self.bands_rest:
+                    idx=obs_sel['band']=='LSST::'+band
+                    n_bef, n_aft=self.Get_nums(obs_sel[idx])
             #print 'eheh',band,n_bef,n_aft
-            n_bef_tot+=n_bef
-            n_aft_tot+=n_aft
-            self.dict_quality[band]=(n_bef,n_aft)
-        self.dict_quality['all']=(n_bef_tot,n_aft_tot) 
+                    n_bef_tot+=n_bef
+                    n_aft_tot+=n_aft
+                    self.dict_quality[band]=(n_bef,n_aft)
+                self.dict_quality['all']=(n_bef_tot,n_aft_tot) 
 
-        obs_sel.sort('time')
-        phase_first=(obs_sel[0]['time']-self.T0)/(1.+self.z)
-        phase_last=(obs_sel[len(obs_sel)-1]['time']-self.T0)/(1.+self.z)
-        self.dict_quality['phase']=(phase_first,phase_last)
+                obs_sel.sort('time')
+                phase_first=(obs_sel[0]['time']-self.T0)/(1.+self.z)
+                phase_last=(obs_sel[len(obs_sel)-1]['time']-self.T0)/(1.+self.z)
+                self.dict_quality['phase']=(phase_first,phase_last)
+           
+
         #print phase_first,phase_last
 
     def Get_nums(self, sel):
