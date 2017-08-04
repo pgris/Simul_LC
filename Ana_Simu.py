@@ -7,6 +7,7 @@ from scipy import interpolate
 from scipy.interpolate import UnivariateSpline
 from scipy.integrate import quad
 import os
+import collections
 
 class Id:
     def __init__(self,thedir,fieldname,fieldid,X1,Color,season,colorfig):
@@ -51,7 +52,9 @@ class Ana_Simu:
         self.zmax=zmax
         self.bin_z=bin_z
 
-        for key, val in dict_ana.items():
+        for key,val in dict_ana.items():
+            #key=vals[0]
+            #val=vals[1]
             print 'hee',val.thedir
             dirmeas=thedir+'/'+val.thedir+'/Season_'+str(val.season)
             sum_file=dirmeas+'/'+val.fieldname+'_'+str(val.fieldid)+'_X1_'+str(val.X1)+'_C_'+str(val.Color)+'_all.pkl'
@@ -89,9 +92,11 @@ class Ana_Simu:
         #figbb, axbb = plt.subplots(ncols=2, nrows=2, figsize=(10,9))
         col=['k','r','b']
         idraw=-1
-        for key, val in tot_resu.items():
+        tot_resu_o=collections.OrderedDict(sorted(tot_resu.items()))
+        for key, val in tot_resu_o.items():
             #self.Plot_Sims(axbb,val)
             idraw+=1
+            sel=val.copy()
             sel=val[np.where(np.logical_and(val['N_bef']>=4,val['N_aft']>=10))]
             sel=sel[np.where(np.logical_and(sel['status']=='go_fit',sel['fit_status']=='fit_ok'))]
             sel=sel[np.where(np.logical_and(sel['phase_first']<=-5,sel['phase_last']>=20))]
@@ -204,22 +209,24 @@ class Ana_Simu:
         #axc[1].set_yscale('log')
         axc[1].set_xlabel('z')
         axc[1].set_ylabel('Number of SN Ia')
-        axc[1].legend(loc='best',prop={'size':12})
+        axc[1].legend(loc='best',prop={'size':8})
 
     def Plot(self, axc,sel,vary,varx,color):
         print 'there',sel[varx],sel[vary]
         axc.plot(sel[varx],np.sqrt(sel[vary]),color+'.')
 
 dict_ana={}
-
+list_ana=[]
 #dict_ana['Mean_Obs_Faint_T0_0']=Id(thedir='Mean_Obs_T0_0',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
 #dict_ana['Mean_Obs']=Id(thedir='Mean_Obs',fieldname='WFD',fieldid=309,X1=-999.,Color=-999.,season=0,colorfig='r')
 
-for seas in [0,1,4,7]:
-    dict_ana['Rolling_Faint_Seas'+str(seas+1)]=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=seas,colorfig='k')
-    #dict_ana['DD_290_'+str(seas+1)]=Id(thedir='DD',fieldname='DD',fieldid=290,X1=-1.,Color=-1.,season=seas,colorfig='k')
-    
+#for seas in [0,1,4,7]:
+for seas in [i for i in range(10)]:
+    #dict_ana['Rolling_Faint_Seas'+str(seas+1)]=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=seas,colorfig='k')
+    dict_ana['DD_290_'+str(seas+1)]=Id(thedir='DD',fieldname='DD',fieldid=290,X1=-1.,Color=-1.,season=seas,colorfig='k')
+    #list_ana.append(('DD_290_'+str(seas+1),Id(thedir='DD',fieldname='DD',fieldid=290,X1=-1.,Color=-1.,season=seas,colorfig='k')))
     
 #dict_ana['Mean_Obs_Faint_newrefs']=Id(thedir='Mean_Obs_newrefs',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
 
-Ana_Simu(dict_ana,zmin=0.,zmax=1.2,bin_z=0.05)
+#dict_ana_ordered=collections.OrderedDict(sorted(dict_ana.items()))
+Ana_Simu(dict_ana,zmin=0.,zmax=1.4,bin_z=0.1)

@@ -44,10 +44,16 @@ class Generate_Single_LC:
         self.dict_quality={}
         self.Get_Quality_LC()
         Nmeas=self.dict_quality['all'][0]+self.dict_quality['all'][1]
+        #print 'there pal',inum
         if Nmeas >= 5:
-            self.outdict['status']='go_fit'
-            self.outdict['fit_status']='unknow'
-            self.Fit_LC()
+            if self.dict_quality['phase'][0]<=-5 and self.dict_quality['phase'][1]>=20:
+                self.outdict['status']='go_fit'
+                self.outdict['fit_status']='unknow'
+                self.Fit_LC()
+                #print 'there pal',self.outdict['fit_status'],inum
+            else:
+                self.outdict['status']='killed'
+                self.outdict['fit_status']='unknow'
         else:
            self.outdict['status']='no_obs'
            self.outdict['fit_status']='unknow' 
