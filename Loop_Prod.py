@@ -31,6 +31,16 @@ dirmeas=opts.dirmeas
 T0random=opts.T0random
 
 zstep=0.1
-for z in np.arange(opts.zmin,opts.zmax,zstep):
+
+range_loop=np.arange(opts.zmin,opts.zmax,zstep)
+#print range_loop
+nvals=int(round((opts.zmax-opts.zmin)/zstep))
+
+if len(range_loop) > nvals:
+    range_loop=range_loop[:-1]
+
+for z in range_loop:
+    #print 'here',z
     cmd='python batch.py --zmin '+str(z)+' --zmax '+str(z+zstep)+' --nevts '+str(nevts)+' --fieldname '+fieldname+' --fieldid '+str(fieldid)+' --season '+str(season)+' --sntype '+sntype+' --stretch '+str(stretch)+' --color '+str(color)+' --dirmeas '+dirmeas+' --T0random '+T0random
+    #print cmd
     os.system(cmd)

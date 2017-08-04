@@ -36,7 +36,7 @@ class Fit_LC:
            idx=select['band']!='LSST::g'
            select=select[idx] 
 
-
+        #print 'what I have to fit',len(select)
         try:
             #print 'trying to fit',len(select)
             res, fitted_model = sncosmo.fit_lc(select, self.SN_fit_model,['t0', 'x0', 'x1', 'c'],bounds={'z':(self.z-0.1, self.z+0.1)})
@@ -56,6 +56,9 @@ class Fit_LC:
                 self.sigma_c=0.
                 print 'crashed'
                 """
+                #print 'crashed'
+                #self.Plot_bands(select)
+                #plt.show()
                 return None,None,-1,'crash'
     @property
     def sigma_c(self):

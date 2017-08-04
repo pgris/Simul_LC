@@ -97,6 +97,7 @@ class Generate_Single_LC:
         
         
         myfit=Fit_LC(z=self.z,telescope=self.telescope,Plot=False)
+        #print 'going to fit',len(self.tot_obs)
         res,fitted_model,mbfit,fit_status=myfit(self.tot_obs)
 
         #print 'hello',res,fitted_model,mbfit,fit_status
@@ -111,6 +112,9 @@ class Generate_Single_LC:
         
             self.outdict['mbfit']=mbfit
             self.outdict['fit_status']='fit_ok'
+
+        if fit_status == 'crash':
+            self.outdict['fit_status']='crashd'
         
         #print 'fit',myfit.sigma_c
 

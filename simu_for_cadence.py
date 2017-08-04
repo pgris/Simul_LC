@@ -68,15 +68,13 @@ myseason=myobs.seasons[num_season]
 
 print myseason.dtype,np.min(myseason['mjd']),np.max(myseason['mjd'])
 
-iddx=myseason['band']=='LSSTPG::g'
+iddx=myseason['band']!='LSSTPG::u'
 mysel=myseason[iddx]
 
 min_season=np.min(mysel['mjd'])
 max_season=np.max(mysel['mjd'])
 
 diff=max_season-min_season
-
-
 
 n_multi=5
 n_batch=N_sn/n_multi
