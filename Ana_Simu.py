@@ -41,7 +41,7 @@ class Id:
         return self.colorfig
 
 class Ana_Simu:
-    def __init__(self, dict_ana,zmin=0.,zmax=1.2):
+    def __init__(self, dict_ana,zmin=0.,zmax=1.2,bin_z=0.01):
 
         thedir='Prod_LC'
 
@@ -49,6 +49,7 @@ class Ana_Simu:
 
         self.zmin=zmin
         self.zmax=zmax
+        self.bin_z=bin_z
 
         for key, val in dict_ana.items():
             print 'hee',val.thedir
@@ -105,7 +106,7 @@ class Ana_Simu:
             self.Plot_Eff(axa,val,sel,'z',dict_ana[key].colorfig,dict_ana[key].season,key,idraw)
             #self.Plot(axc,sel,'salt2.CovColorColor','z',dict_ana[key].colorfig)
             #print 'Number of Events',val[0],val[1],len(val)
-            for vval in np.arange(0.,0.7,0.1):
+            for vval in np.arange(self.zmin,self.zmax,0.1):
                 ssel=val[np.where(np.logical_and(val['z']>=vval,val['z']<vval+0.1))]
                 print vval,vval+0.1,len(ssel)
 
@@ -133,7 +134,7 @@ class Ana_Simu:
     def Histo_ratio(self,sela,selb,varname):
 
         range=[self.zmin,self.zmax]
-        bin_width=0.01
+        bin_width=self.bin_z
         num_bins=int((range[1]-range[0])/bin_width)
         #range=[0.0,1.2]
         
@@ -175,13 +176,16 @@ class Ana_Simu:
         axc[0].legend(loc='best',prop={'size':12})
         effi = interpolate.interp1d(bin_center,ratio)
 
-        sn_rate=SN_Rate()
+        rate_name='Perret'
+        sn_rate=SN_Rate(rate=rate_name)
 
-        zz,rate,nsn=sn_rate(self.zmin,self.zmax,0.01)
+        #zz,rate,err_rate,nsn,err_nsn=sn_rate(self.zmin,self.zmax,self.bin_z)
+        zz,rate,err_rate,nsn,err_nsn=sn_rate(bins=bin_center)
         
-        print 'Nsn',np.sum(nsn)
+        print 'Nsn',np.sum(nsn),zz,bin_center
 
         nsn_season = interpolate.interp1d(zz,nsn)
+        err_nsn_season = interpolate.interp1d(zz,err_nsn)
 
         combi=nsn_season(zz)*effi(zz)
         yerr_combi=np.power(np.power(ratio_err*nsn_season(zz),2.)+np.power(0.1*nsn_season(zz)*effi(zz),2.),0.5)
@@ -192,7 +196,7 @@ class Ana_Simu:
         #axc[1].plot(zz,nsn,'b+')
         #axc[1].plot(zz,nsn_season(zz),marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='black')
         if idraw == 0:
-            axc[1].errorbar(zz,nsn_season(zz),yerr=0.1*nsn_season(zz),marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='black',label='N$_{SN Ia}$ expected (Ripoche rate)')
+            axc[1].errorbar(zz,nsn_season(zz),yerr=err_nsn_season(zz),marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='black',label='N$_{SN Ia}$ expected ('+rate_name+' rate)')
         #axc[1].plot(zz,nsn_season(zz)*effi(zz),marker='.', mfc='red', mec='red', ms=8, linestyle='-',color=color)
         
         ll='Y'+str(season+1)+' - N$_{SN Ia}$ = '+str(int(N_sn))+'$\pm$'+str(int(err_N_sn))
@@ -211,10 +215,11 @@ dict_ana={}
 #dict_ana['Mean_Obs_Faint_T0_0']=Id(thedir='Mean_Obs_T0_0',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
 #dict_ana['Mean_Obs']=Id(thedir='Mean_Obs',fieldname='WFD',fieldid=309,X1=-999.,Color=-999.,season=0,colorfig='r')
 
-
-dict_ana['Rolling_Faint_Seas1']=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
-dict_ana['Rolling_Faint_Seas2']=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=1,colorfig='b')
-dict_ana['Rolling_Faint_Seas5']=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=4,colorfig='g')
+for seas in [0,1,4,7]:
+    dict_ana['Rolling_Faint_Seas'+str(seas+1)]=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=seas,colorfig='k')
+    #dict_ana['DD_290_'+str(seas+1)]=Id(thedir='DD',fieldname='DD',fieldid=290,X1=-1.,Color=-1.,season=seas,colorfig='k')
+    
+    
 #dict_ana['Mean_Obs_Faint_newrefs']=Id(thedir='Mean_Obs_newrefs',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
 
-Ana_Simu(dict_ana,zmin=0.,zmax=0.5)
+Ana_Simu(dict_ana,zmin=0.,zmax=1.2,bin_z=0.05)
