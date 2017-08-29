@@ -26,8 +26,7 @@ class SN_Rate:
             thebins=np.append(thebins,thebins[len(bins)-1]+(bins[1]-bins[0]))
 
         rate, err_rate = self.sn_rate(zz)
-        
-        
+                
         area = norm* self.survey_area / STERADIAN2SQDEG # or area= self.survey_area/41253.
         dvol = self.astropy_cosmo.comoving_volume(thebins).value
         print 'after rate',len(zz),len(rate),len(dvol),dvol
@@ -61,8 +60,9 @@ class SN_Rate:
         my_z[my_z>1.] = 1.
         rate_sn=rate * np.power(1+my_z, expn)
         
-        err_rate_sn=np.power(err_rate/rate,2.)+np.power(np.log(1+my_z)*err_expn,2.)
-        return rate_sn,rate_sn*np.power(err_rate_sn,0.5)
+        #err_rate_sn=np.power(err_rate/rate,2.)+np.power(np.log(1+my_z)*err_expn,2.)
+        err_rate_sn=np.power(1+my_z, 2.*expn)*np.power(err_rate,2.)+np.power(rate_sn*np.log(1+my_z)*err_expn,2.)
+        return rate_sn,np.power(err_rate_sn,0.5)
 
     def sn_rate(self,z):
         if self.rate == 'Ripoche':

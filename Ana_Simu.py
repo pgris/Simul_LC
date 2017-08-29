@@ -86,9 +86,15 @@ class Ana_Simu:
         
         #self.Plot_Sims(tot_resu)
 
+        self.nsn_tot=0.
+        self.err_tot=0.
+        self.ms=['o','o','s','s','.','.','^','^','<','<']
+        self.color=['b','r','b','r','b','r','b','r','b','r']
+        figa, axa = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+        figc, axc = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+        title=val.fieldname+' - '+str(val.fieldid)
         
-        figa, axa = plt.subplots(ncols=1, nrows=2, figsize=(10,9))
-        #figc, axc = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+
         #figbb, axbb = plt.subplots(ncols=2, nrows=2, figsize=(10,9))
         col=['k','r','b']
         idraw=-1
@@ -108,7 +114,7 @@ class Ana_Simu:
             sela=tot_resu[np.where(np.logical_and(tot_resu['X1']==val[0],tot_resu['Color']==val[1]))]
             selc=sel[np.where(np.logical_and(sel['X1']==val[0],sel['Color']==val[1]))]
             """
-            self.Plot_Eff(axa,val,sel,'z',dict_ana[key].colorfig,dict_ana[key].season,key,idraw)
+            self.Plot_Eff(axa,axc,val,sel,'z',dict_ana[key].colorfig,dict_ana[key].season,key,idraw)
             #self.Plot(axc,sel,'salt2.CovColorColor','z',dict_ana[key].colorfig)
             #print 'Number of Events',val[0],val[1],len(val)
             for vval in np.arange(self.zmin,self.zmax,0.1):
@@ -116,6 +122,13 @@ class Ana_Simu:
                 print vval,vval+0.1,len(ssel)
 
         #print val['T0']
+        print 'in total :',self.nsn_tot,'+-',np.power(self.err_tot,0.5)
+        axa.set_title(title)
+        #axa.set_xlim(self.zmin,self.zmax+0.01)
+        title+=' - N$_{SN Ia}$ ='+str(int(self.nsn_tot))+'$\pm$'+str(int(np.power(self.err_tot,0.5)))
+        axc.set_title(title)
+        #axc.set_xlim(self.zmin,self.zmax+0.01)
+
         plt.show()
 
     def Plot_Sims(self,axbb,tab_resu):
@@ -166,19 +179,22 @@ class Ana_Simu:
     
         return bin_center, ratio, ratio_err,norm,norm_err
 
-    def Plot_Eff(self,axc,sela,selb,varname,color,season,ll,idraw):
+    def Plot_Eff(self,axc,axb,sela,selb,varname,color,season,ll,idraw):
         tot_label=[]
         #figc, axc = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
-        self.Plot_Eff_Indiv(axc,sela,selb,varname,tot_label,ll,color,season,idraw)
+        self.Plot_Eff_Indiv(axc,axb,sela,selb,varname,tot_label,ll,color,season,idraw)
         
-    def Plot_Eff_Indiv(self,axc,sela,selb,varname,tot_label,ll,color,season,idraw):
+    def Plot_Eff_Indiv(self,axc,axb,sela,selb,varname,tot_label,ll,color,season,idraw):
 
         bin_center, ratio, ratio_err,norm,norm_err= self.Histo_ratio(sela,selb,varname)
         #tot_label.append(axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=marker, mfc=colors[key], mec=colors[key], ms=8, linestyle=myfmt[i],color='k',label=ll))
-        axc[0].errorbar(bin_center,ratio, yerr=ratio_err,marker='.', mfc='red', mec='red', ms=8, linestyle='-',color=color,label=ll)
-        axc[0].set_xlabel('z')
-        axc[0].set_ylabel('Efficiency')
-        axc[0].legend(loc='best',prop={'size':12})
+        ll='Y'+str(season+1)
+        axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season], mfc=self.color[season], mec=self.color[season], ms=8, linestyle='-',color=color,label=ll)
+        axc.set_xlabel('z')
+        axc.set_ylabel('Efficiency')
+        axc.legend(loc='best',prop={'size':12})
+        axc.set_xlim(self.zmin,np.max(bin_center)+0.01)
+
         effi = interpolate.interp1d(bin_center,ratio)
 
         rate_name='Perret'
@@ -187,29 +203,36 @@ class Ana_Simu:
         #zz,rate,err_rate,nsn,err_nsn=sn_rate(self.zmin,self.zmax,self.bin_z)
         zz,rate,err_rate,nsn,err_nsn=sn_rate(bins=bin_center)
         
-        print 'Nsn',np.sum(nsn),zz,bin_center
-
+        print 'Nsn',np.sum(nsn),zz,bin_center,nsn,err_nsn,np.power(np.sum(np.power(err_nsn,2.)),0.5)
+        
         nsn_season = interpolate.interp1d(zz,nsn)
         err_nsn_season = interpolate.interp1d(zz,err_nsn)
 
         combi=nsn_season(zz)*effi(zz)
-        yerr_combi=np.power(np.power(ratio_err*nsn_season(zz),2.)+np.power(0.1*nsn_season(zz)*effi(zz),2.),0.5)
+        #yerr_combi=np.power(np.power(ratio_err*nsn_season(zz),2.)+np.power(0.1*nsn_season(zz)*effi(zz),2.),0.5)
+        yerr_combi=np.power(np.power(ratio_err*nsn_season(zz),2.)+np.power(err_nsn_season(zz)*effi(zz),2.),0.5)
 
-        print 'Number of SN Ia',np.sum(combi),np.power(np.sum(np.power(yerr_combi,2.)),0.5)
+        print 'Number of SN Ia',season,np.sum(combi),np.power(np.sum(np.power(yerr_combi,2.)),0.5)
         N_sn=np.sum(combi)
         err_N_sn=np.power(np.sum(np.power(yerr_combi,2.)),0.5)
+        self.nsn_tot+=np.sum(combi)
+        self.err_tot+=np.power(err_N_sn,2.)
         #axc[1].plot(zz,nsn,'b+')
         #axc[1].plot(zz,nsn_season(zz),marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='black')
         if idraw == 0:
-            axc[1].errorbar(zz,nsn_season(zz),yerr=err_nsn_season(zz),marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='black',label='N$_{SN Ia}$ expected ('+rate_name+' rate)')
+            axb.errorbar(zz,nsn_season(zz),yerr=err_nsn_season(zz),marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='black',label='N$_{SN Ia}$ expected ('+rate_name+' rate) : '+str(int(np.sum(nsn_season(zz))))+'$\pm$'+str(int(np.power(np.sum(np.power(err_nsn_season(zz),2.)),0.5))))
         #axc[1].plot(zz,nsn_season(zz)*effi(zz),marker='.', mfc='red', mec='red', ms=8, linestyle='-',color=color)
-        
-        ll='Y'+str(season+1)+' - N$_{SN Ia}$ = '+str(int(N_sn))+'$\pm$'+str(int(err_N_sn))
-        axc[1].errorbar(zz,combi,yerr=yerr_combi,marker='.', mfc='red', mec='red', ms=8, linestyle='-',color=color,label=ll)
+        if season < 9:
+            ll='Y'+str(season+1)+'   - N$_{SN Ia}$ = '+str(int(N_sn))+' $\pm$ '+str(int(err_N_sn))
+        else:
+            ll='Y'+str(season+1)+' - N$_{SN Ia}$ = '+str(int(N_sn))+' $\pm$ '+str(int(err_N_sn))
+        axb.errorbar(zz,combi,yerr=yerr_combi,marker=self.ms[season], mfc=self.color[season], mec=self.color[season], ms=8, linestyle='-',color=color,label=ll)
         #axc[1].set_yscale('log')
-        axc[1].set_xlabel('z')
-        axc[1].set_ylabel('Number of SN Ia')
-        axc[1].legend(loc='best',prop={'size':8})
+        axb.set_xlabel('z')
+        axb.set_ylabel('Number of SN Ia')
+        axb.legend(loc='best',prop={'size':12})
+        axb.set_xlim(self.zmin,np.max(bin_center)+0.01)
+        
 
     def Plot(self, axc,sel,vary,varx,color):
         print 'there',sel[varx],sel[vary]
@@ -229,4 +252,4 @@ for seas in [i for i in range(10)]:
 #dict_ana['Mean_Obs_Faint_newrefs']=Id(thedir='Mean_Obs_newrefs',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
 
 #dict_ana_ordered=collections.OrderedDict(sorted(dict_ana.items()))
-Ana_Simu(dict_ana,zmin=0.,zmax=1.4,bin_z=0.1)
+Ana_Simu(dict_ana,zmin=0.,zmax=1.1,bin_z=0.1)
