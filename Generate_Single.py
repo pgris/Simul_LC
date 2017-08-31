@@ -139,24 +139,32 @@ class Generate_Single_LC:
         #estimate the number of LC points (5 sigma) before and after T0 - observer frame
         for band in self.bands_rest:
             self.dict_quality[band]=(0,0)
+            self.dict_quality['cadence_'+band]=(0.0,0.0)
         self.dict_quality['all']=(0,0)
         self.dict_quality['phase']=(0.0,0.0)
-        
+        self.dict_quality['cadence_all']=(0.0,0.0)
+
         if self.tot_obs is not None:
             obs_sel=self.tot_obs[np.where(np.logical_and(self.tot_obs['flux']/self.tot_obs['fluxerr']>5.,self.tot_obs['flux']>0.))]
-        
+            
         #print self.Get_nums(obs_sel)
             if len(obs_sel) > 0:
+                obs_sel.sort('time')
                 n_bef_tot=0
                 n_aft_tot=0
                 for band in self.bands_rest:
                     idx=obs_sel['band']=='LSST::'+band
                     n_bef, n_aft=self.Get_nums(obs_sel[idx])
+                    mean_cadence, rms_cadence=self.Get_cadence(obs_sel[idx])
             #print 'eheh',band,n_bef,n_aft
                     n_bef_tot+=n_bef
                     n_aft_tot+=n_aft
                     self.dict_quality[band]=(n_bef,n_aft)
+                    self.dict_quality['cadence_'+band]=(mean_cadence,rms_cadence)
+                    
                 self.dict_quality['all']=(n_bef_tot,n_aft_tot) 
+                mean_cadence, rms_cadence=self.Get_cadence(obs_sel)
+                self.dict_quality['cadence_all']=(mean_cadence,rms_cadence)
 
                 obs_sel.sort('time')
                 phase_first=(obs_sel[0]['time']-self.T0)/(1.+self.z)
@@ -173,6 +181,19 @@ class Generate_Single_LC:
 
         return len(sel[idxa]),len(sel[idxb])
 
+    def Get_cadence(self, sel):
+
+        if len(sel) == 0:
+            return 0.0,0.0
+        else:
+            if len(sel)==1:
+                return 0.0,0.0
+            else:
+                calc=[io-jo for jo,io in zip(sel['time'][:-1], sel['time'][1:])]  
+                if len(calc)==1:
+                    return calc[0],0.0
+                else:
+                    return np.mean(calc),np.std(calc)
 
     def Summary(self):
         
@@ -188,10 +209,14 @@ class Generate_Single_LC:
         for band in self.bands_rest:
             resu['N_bef_'+band]=self.dict_quality[band][0]
             resu['n_aft_'+band]=self.dict_quality[band][1]
+            resu['cad_'+band]=self.dict_quality['cadence_'+band][0]
+            resu['cad_rms_'+band]=self.dict_quality['cadence_'+band][1]
         resu['phase_first']=self.dict_quality['phase'][0]
         resu['phase_last']=self.dict_quality['phase'][1]
         resu['N_bef']=self.dict_quality['all'][0]
         resu['N_aft']=self.dict_quality['all'][1]
+        resu['cad']=self.dict_quality['cadence_all'][0]
+        resu['cad_rms']=self.dict_quality['cadence_all'][1]
         resu['status']=self.outdict['status']
         resu['fit_status']=self.outdict['fit_status']
 
@@ -216,13 +241,15 @@ class Generate_Single_LC:
                 resu['salt2.X0']=self.outdict['sncosmo_fitted']['x0']
                 resu['salt2.X1']=self.outdict['sncosmo_fitted']['x1']
                 resu['salt2.Color']=self.outdict['sncosmo_fitted']['c']
-                resu['salt2.CovX1X1']=self.outdict['sncosmo_res']['covariance'][corr['x1']][corr['x1']]
-                resu['salt2.CovColorColor']=self.outdict['sncosmo_res']['covariance'][corr['c']][corr['c']]
-                resu['salt2.CovX0X1']=self.outdict['sncosmo_res']['covariance'][corr['x0']][corr['x1']]
-                resu['salt2.CovColorX0']=self.outdict['sncosmo_res']['covariance'][corr['c']][corr['x0']]
-                resu['salt2.CovColorX1']=self.outdict['sncosmo_res']['covariance'][corr['c']][corr['x1']]
+                if self.outdict['sncosmo_res']['covariance'] is not None:
+                    resu['salt2.CovX1X1']=self.outdict['sncosmo_res']['covariance'][corr['x1']][corr['x1']]
+                    resu['salt2.CovColorColor']=self.outdict['sncosmo_res']['covariance'][corr['c']][corr['c']]
+                    resu['salt2.CovX0X1']=self.outdict['sncosmo_res']['covariance'][corr['x0']][corr['x1']]
+                    resu['salt2.CovColorX0']=self.outdict['sncosmo_res']['covariance'][corr['c']][corr['x0']]
+                    resu['salt2.CovColorX1']=self.outdict['sncosmo_res']['covariance'][corr['c']][corr['x1']]
                 resu['mbfit']=self.outdict['mbfit']
 
         
         #print 'hello',resu.values(),resu.keys()
-        return np.rec.fromarrays(tuple([res for res in resu.values()]),names=[key for key in resu.keys()])
+       
+        return (np.rec.fromarrays(tuple([res for res in resu.values()]),names=[key for key in resu.keys()]),self.outdict['observations'])

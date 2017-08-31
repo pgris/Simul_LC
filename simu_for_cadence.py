@@ -9,6 +9,7 @@ import multiprocessing
 import cPickle as pkl
 from optparse import OptionParser
 import os
+from astropy.table import vstack,Table
 
 parser = OptionParser()
 
@@ -48,9 +49,14 @@ filename='../Ana_Cadence/OpSimLogs/'+opts.dirmeas+'/Observations_'+opts.fieldnam
 myobs=Observations(fieldid=fieldid, filename=filename)
 
 
-outdir='Prod_LC/'+opts.dirmeas+'/Season_'+str(num_season)
+outdir='Prod_LC/'+opts.dirmeas+'/'+str(fieldid)+'/Season_'+str(num_season)
 if not os.path.exists(outdir):
     os.makedirs(outdir)
+
+outdir_obs='Prod_LC/'+opts.dirmeas+'_Obs/'+str(fieldid)+'/Season_'+str(num_season)
+if not os.path.exists(outdir_obs):
+    os.makedirs(outdir_obs)
+
 
 print(len(myobs.seasons))
 
@@ -60,7 +66,6 @@ if X1==-999. or Color==-999.:
     else:
         X1_Color_npzfile = np.load('Dist_X1_Color_high_z.npz','r')
         
-
 
 #num_season=1
 
@@ -101,6 +106,7 @@ for i in range(0,n_batch):
         if Color==-999.:
             Color_val=np.random.choice(X1_Color_npzfile['c_vals'],1,p=X1_Color_npzfile['c_weights'])[0]
 
+        #print 'hello I will process',X1_val,Color_val
         #print 'Processing',j,T0,z
         p=multiprocessing.Process(name='Subprocess-'+str(i),target=Generate_Single_LC,args=(z,T0,X1_val,Color_val,myseason,telescope,j,result_queue))
     #process.append(p)
@@ -113,20 +119,40 @@ for i in range(0,n_batch):
     for p in multiprocessing.active_children():
         p.join()
 
+    tot_summary=None
     tot_obs=None
+    
     for j in range(0,n_multi):
         #print 'hello there',resultdict[j].dtype
+        
+        if tot_summary is None:
+            tot_summary=resultdict[j][0]
+            #print 'there',tot_summary
+        else:
+            #print 'careful',tot_summary.dtype
+            #print 'carefulb',resultdict[j][0].dtype,resultdict[j][0]
+            tot_summary=np.vstack((tot_summary,resultdict[j][0]))
+
         if tot_obs is None:
-            tot_obs=resultdict[j]
+            tot_obs=resultdict[j][1]
             #print 'there',tot_obs
         else:
             #print 'careful',tot_obs.dtype
-            #print 'carefulb',resultdict[j].dtype
-            tot_obs=np.vstack((tot_obs,resultdict[j]))
+            #print 'carefulb',resultdict[j][1]
+            tot_obs=vstack([tot_obs,resultdict[j][1]])
+
 
     pkl_file = open(outdir+'/'+name_for_output+'.pkl','wb')
+    
+    pkl.dump(tot_summary, pkl_file)
+    
+    pkl_file.close()
+
+    pkl_file = open(outdir_obs+'/'+name_for_output+'.pkl','wb')
     
     pkl.dump(tot_obs, pkl_file)
     
     pkl_file.close()
+    
+
 print 'total elapse time',time.time()-time_begin

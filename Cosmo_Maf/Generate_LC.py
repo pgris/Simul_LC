@@ -28,6 +28,7 @@ class Generate_LC:
         #self.params=Table(names=('t0','c','x1','z','ra','dec','status','fit','sn_type','sn_model','sn_version','mbsim','x0','dL'),dtype=('f8','f8','f8','f8','f8','S8','S8','f8','S8','S8','S8','f8','f8','f8'))
        
         self.table_for_fit = Table(names=('time','flux','fluxerr','band','zp','zpsys'), dtype=('f8', 'f8','f8','S7','f4','S4'))
+        self.table_obs = Table(names=('time','flux','fluxerr','band','zp','zpsys','airmass','m5','expTime','z','T0','x1','c'), dtype=('f8', 'f8','f8','S7','f4','S4','f8', 'f8','f8','f8', 'f8','f8','f8'))
         self.model=model
         self.version=version
 
@@ -170,6 +171,7 @@ class Generate_LC:
                 r.append((e_per_sec,mjds[i],flux_SN))
                 
                 self.table_for_fit.add_row((mjds[i],flux_SN,err_flux_SN,'LSST::'+filtre,25,'ab'))
+                self.table_obs.add_row((mjds[i],flux_SN,err_flux_SN,'LSST::'+filtre,25,'ab',airmass[i],m5[i],expTime[i],self.param['z'],self.param['DayMax'],self.param['X1'],self.param['Color']))
 
         #print 'hello',r
         #self.lc[filtre]=np.rec.fromrecords(r, names = ['flux','mjd','flux_SN'])
@@ -180,8 +182,8 @@ class Generate_LC:
             res=np.rec.fromrecords(r, names = ['flux','mjd','flux_SN'])
         else:
             res=None
-        out_q.put({filtre :(res,self.table_for_fit)})
-        
+        #out_q.put({filtre :(res,self.table_for_fit)})
+        out_q.put({filtre :(res,self.table_obs)})
         return res
         #plt.show()
         

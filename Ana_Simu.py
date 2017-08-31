@@ -56,7 +56,7 @@ class Ana_Simu:
             #key=vals[0]
             #val=vals[1]
             print 'hee',val.thedir
-            dirmeas=thedir+'/'+val.thedir+'/Season_'+str(val.season)
+            dirmeas=thedir+'/'+val.thedir+'/'+str(val.fieldid)+'/Season_'+str(val.season)
             sum_file=dirmeas+'/'+val.fieldname+'_'+str(val.fieldid)+'_X1_'+str(val.X1)+'_C_'+str(val.Color)+'_all.pkl'
 
             if os.path.exists(sum_file):
@@ -65,7 +65,7 @@ class Ana_Simu:
             else:
 
                 files = glob.glob(dirmeas+'/'+val.fieldname+'_'+str(val.fieldid)+'*_X1_'+str(val.X1)+'_C_'+str(val.Color)+'*.pkl')
-        
+                print 'hello',dirmeas
                 for fi in files:
                     pkl_file = open(fi,'rb')
                     print 'loading',fi
@@ -73,16 +73,15 @@ class Ana_Simu:
                         tot_resu[key]=pkl.load(pkl_file)
                     else:
                         tot_resu[key]=np.vstack((tot_resu[key],pkl.load(pkl_file)))
+
                 pkl_out = open(sum_file,'wb')
-    
+                
                 pkl.dump(tot_resu[key], pkl_out)
                 
                 pkl_out.close()
        
 
             print 'there',len(tot_resu[key]),tot_resu[key].dtype
-        
-
         
         #self.Plot_Sims(tot_resu)
 
@@ -101,6 +100,11 @@ class Ana_Simu:
         tot_resu_o=collections.OrderedDict(sorted(tot_resu.items()))
         for key, val in tot_resu_o.items():
             #self.Plot_Sims(axbb,val)
+
+            for band in 'y':
+                fig, ax = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+                self.Plot(ax,val,'N_bef_'+band,'z',col[0])
+
             idraw+=1
             sel=val.copy()
             sel=val[np.where(np.logical_and(val['N_bef']>=4,val['N_aft']>=10))]
@@ -236,20 +240,24 @@ class Ana_Simu:
 
     def Plot(self, axc,sel,vary,varx,color):
         print 'there',sel[varx],sel[vary]
-        axc.plot(sel[varx],np.sqrt(sel[vary]),color+'.')
+        axc.plot(sel[varx],sel[vary],color+'.')
 
 dict_ana={}
 list_ana=[]
 #dict_ana['Mean_Obs_Faint_T0_0']=Id(thedir='Mean_Obs_T0_0',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
 #dict_ana['Mean_Obs']=Id(thedir='Mean_Obs',fieldname='WFD',fieldid=309,X1=-999.,Color=-999.,season=0,colorfig='r')
 
-#for seas in [0,1,4,7]:
+fieldid=290
+X1=0.0
+Color=0.0
+
+#for seas in [1]:
 for seas in [i for i in range(10)]:
     #dict_ana['Rolling_Faint_Seas'+str(seas+1)]=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=seas,colorfig='k')
-    dict_ana['DD_290_'+str(seas+1)]=Id(thedir='DD',fieldname='DD',fieldid=290,X1=-1.,Color=-1.,season=seas,colorfig='k')
+    dict_ana['DD_'+str(fieldid)+'_'+str(seas+1)]=Id(thedir='DD',fieldname='DD',fieldid=fieldid,X1=X1,Color=Color,season=seas,colorfig='k')
     #list_ana.append(('DD_290_'+str(seas+1),Id(thedir='DD',fieldname='DD',fieldid=290,X1=-1.,Color=-1.,season=seas,colorfig='k')))
     
 #dict_ana['Mean_Obs_Faint_newrefs']=Id(thedir='Mean_Obs_newrefs',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
 
 #dict_ana_ordered=collections.OrderedDict(sorted(dict_ana.items()))
-Ana_Simu(dict_ana,zmin=0.,zmax=1.1,bin_z=0.1)
+Ana_Simu(dict_ana,zmin=0.,zmax=1.0,bin_z=0.1)

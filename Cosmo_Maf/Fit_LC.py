@@ -36,6 +36,14 @@ class Fit_LC:
            idx=select['band']!='LSST::g'
            select=select[idx] 
 
+        if self.z > 0.85:
+           idx=select['band']!='LSST::r'
+           select=select[idx]
+
+        if self.z > 1.27:
+           idx=select['band']!='LSST::i'
+           select=select[idx]
+
         #print 'what I have to fit',len(select)
         try:
             #print 'trying to fit',len(select)
