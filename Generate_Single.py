@@ -44,7 +44,7 @@ class Generate_Single_LC:
         self.dict_quality={}
         self.Get_Quality_LC()
         Nmeas=self.dict_quality['all'][0]+self.dict_quality['all'][1]
-        #print 'there pal',inum
+        #print 'there pal',Nmeas
         if Nmeas >= 5:
             if self.dict_quality['phase'][0]<=-5 and self.dict_quality['phase'][1]>=20:
                 self.outdict['status']='go_fit'
@@ -78,6 +78,7 @@ class Generate_Single_LC:
         for b in self.bands_rest:
             idx= self.obs['band']=='LSSTPG::'+b
             sel=self.obs[idx]
+            #print 'aiaiai',b,np.median(sel['m5sigmadepth'])
             p=multiprocessing.Process(name='Subprocess-'+b,target=self.mysn,args=(sel['mjd'],sel['airmass'],sel['m5sigmadepth'],b,sel['exptime'],result_queue))
             process.append(p)
             p.start()
@@ -103,7 +104,11 @@ class Generate_Single_LC:
         
         
         myfit=Fit_LC(z=self.z,telescope=self.telescope,Plot=False)
-        #print 'going to fit',len(self.tot_obs)
+        #print 'going to fit',len(self.tot_obs),self.tot_obs.dtype
+
+        self.outdict['m5sigma']=np.median(self.tot_obs['m5'])
+        self.outdict['airmass']=np.median(self.tot_obs['airmass'])
+                                          
         res,fitted_model,mbfit,fit_status=myfit(self.tot_obs)
 
         #print 'hello',res,fitted_model,mbfit,fit_status
@@ -208,7 +213,7 @@ class Generate_Single_LC:
         resu['Color']=self.Color
         for band in self.bands_rest:
             resu['N_bef_'+band]=self.dict_quality[band][0]
-            resu['n_aft_'+band]=self.dict_quality[band][1]
+            resu['N_aft_'+band]=self.dict_quality[band][1]
             resu['cad_'+band]=self.dict_quality['cadence_'+band][0]
             resu['cad_rms_'+band]=self.dict_quality['cadence_'+band][1]
         resu['phase_first']=self.dict_quality['phase'][0]
@@ -229,9 +234,14 @@ class Generate_Single_LC:
         resu['salt2.CovColorX0']=-999.
         resu['salt2.CovColorX1']=-999.
         resu['mbfit']=-999.
+        resu['m5sigma']=-999.
+        resu['airmass']=-999.
 
         if self.outdict['status']=='go_fit':
             #print 'rg',self.outdict['sncosmo_fitted']
+            resu['m5sigma']=self.outdict['m5sigma']
+            resu['airmass']=self.outdict['airmass']
+
             if self.outdict['fit_status']=='fit_ok':
                 corr={}
                 for i,pal in enumerate(self.outdict['sncosmo_res']['vparam_names']):

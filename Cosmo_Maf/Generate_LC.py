@@ -100,19 +100,23 @@ class Generate_LC:
         self.SN.set(c=self.param['Color'])
         self.SN.set(x1=self.param['X1'])
         self.SN.set(x0=self.X0)
-
-        if self.sn_type=='Ia':
-            self.mbsim=self.SN._source.peakmag('bessellb','vega')
+            
         #self.SED={}
         #print 'sncosmo parameters',self.SN.param_names,self.SN.parameters
-        #lsstmwebv = EBVbase()
-        """
+        lsstmwebv = EBVbase()
+        
         ebvofMW = lsstmwebv.calculateEbv(
             equatorialCoordinates=np.array([[np.radians(self.radeg)], [np.radians(self.decdeg)]]))[0]
-        SN.set(mwebv=ebvofMW)
-        """
-        #SN.set_source_peakabsmag(self.peakAbsMagBesselB, 'bessellB', 'vega',cosmo=self.astropy_cosmo)
+        #self.SN.set(mwebv=ebvofMW)
         
+        #self.SN.set_source_peakabsmag(self.peakAbsMagBesselB, 'bessellB', 'vega',cosmo=self.astropy_cosmo)
+        if self.sn_type=='Ia':
+            self.mbsim=self.SN._source.peakmag('bessellb','vega')
+            #print 'hello',self.mbsim
+
+
+        
+
     def __call__(self,mjds,airmass,m5,filtre,expTime,out_q):
 
         fluxes=10.*self.SN.flux(mjds,self.wave)
@@ -177,7 +181,8 @@ class Generate_LC:
         #self.lc[filtre]=np.rec.fromrecords(r, names = ['flux','mjd','flux_SN'])
 
         #print 'yyyy',len(self.lc[filtre]),self.lc[filtre]['flux_SN']
-       
+        #select=self.table_obs[np.where(np.logical_and(self.table_obs['flux']/self.table_obs['fluxerr']>5.,self.table_obs['flux']>0.))]
+
         if len(r)> 0:
             res=np.rec.fromrecords(r, names = ['flux','mjd','flux_SN'])
         else:
