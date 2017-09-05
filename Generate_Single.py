@@ -108,7 +108,7 @@ class Generate_Single_LC:
         myfit=Fit_LC(z=self.z,telescope=self.telescope,Plot=False)
         #print 'going to fit',len(self.tot_obs),self.tot_obs.dtype
 
-        self.outdict['m5sigma']=np.median(self.tot_obs['m5'])
+        #self.outdict['m5sigma']=np.median(self.tot_obs['m5'])
         self.outdict['airmass']=np.median(self.tot_obs['airmass'])
                                           
         res,fitted_model,mbfit,fit_status=myfit(self.tot_obs)
@@ -147,6 +147,7 @@ class Generate_Single_LC:
         for band in self.bands_rest:
             self.dict_quality[band]=(0,0)
             self.dict_quality['cadence_'+band]=(0.0,0.0)
+            self.dict_quality['m5sigma_'+band]=(0.0,0.0)
         self.dict_quality['all']=(0,0)
         self.dict_quality['phase']=(0.0,0.0)
         self.dict_quality['cadence_all']=(0.0,0.0)
@@ -168,7 +169,9 @@ class Generate_Single_LC:
                     n_aft_tot+=n_aft
                     self.dict_quality[band]=(n_bef,n_aft)
                     self.dict_quality['cadence_'+band]=(mean_cadence,rms_cadence)
-                    
+                    #print obs_sel[idx].dtype
+                    self.dict_quality['m5sigma_'+band]=(np.mean(obs_sel[idx]['m5']),np.std(obs_sel[idx]['m5']))
+
                 self.dict_quality['all']=(n_bef_tot,n_aft_tot) 
                 mean_cadence, rms_cadence=self.Get_cadence(obs_sel)
                 self.dict_quality['cadence_all']=(mean_cadence,rms_cadence)
@@ -218,6 +221,9 @@ class Generate_Single_LC:
             resu['N_aft_'+band]=self.dict_quality[band][1]
             resu['cad_'+band]=self.dict_quality['cadence_'+band][0]
             resu['cad_rms_'+band]=self.dict_quality['cadence_'+band][1]
+            resu['m5sigma_'+band]=self.dict_quality['m5sigma_'+band][0]
+            resu['m5sigma_rms_'+band]=self.dict_quality['m5sigma_'+band][1]
+
         resu['phase_first']=self.dict_quality['phase'][0]
         resu['phase_last']=self.dict_quality['phase'][1]
         resu['N_bef']=self.dict_quality['all'][0]
@@ -236,13 +242,13 @@ class Generate_Single_LC:
         resu['salt2.CovColorX0']=-999.
         resu['salt2.CovColorX1']=-999.
         resu['mbfit']=-999.
-        resu['m5sigma']=-999.
-        resu['airmass']=-999.
+        #resu['m5sigma']=-999.
+        #resu['airmass']=-999.
 
         if self.outdict['status']=='go_fit':
             #print 'rg',self.outdict['sncosmo_fitted']
-            resu['m5sigma']=self.outdict['m5sigma']
-            resu['airmass']=self.outdict['airmass']
+            
+            #resu['airmass']=self.outdict['airmass']
 
             if self.outdict['fit_status']=='fit_ok':
                 corr={}
