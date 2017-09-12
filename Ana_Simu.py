@@ -8,6 +8,7 @@ from scipy.interpolate import UnivariateSpline
 from scipy.integrate import quad
 import os
 import collections
+from optparse import OptionParser
 
 class Id:
     def __init__(self,thedir,fieldname,fieldid,X1,Color,season,colorfig):
@@ -81,7 +82,7 @@ class Ana_Simu:
                 pkl_out.close()
        
 
-            print 'there',len(tot_resu[key]),tot_resu[key].dtype
+            print 'there',key,len(tot_resu[key]),tot_resu[key].dtype
          
         # this is for simulated parameters
     
@@ -149,6 +150,7 @@ class Ana_Simu:
             # number of supernovae per season
             self.Plot_N_SN(axc,val,sel,'z',dict_ana[key].colorfig,dict_ana[key].season,key,idraw)
 
+            #print 'boouh',key,dict_ana[key].colorfig,dict_ana[key].season
 
             #self.Plot(axc,sel,'salt2.CovColorColor','z',dict_ana[key].colorfig)
             #print 'Number of Events',val[0],val[1],len(val)
@@ -164,11 +166,12 @@ class Ana_Simu:
         axc.set_title(title)
         #axc.set_xlim(self.zmin,self.zmax+0.01)
 
-        #self.Plot_m5(tot_resu)
+        self.Plot_m5(tot_resu)
         #self.Plot_Cadences(tot_resu)
         #self.Plot_Nobs(tot_resu)
-        self.Plot_Phases(tot_resu)
+        #self.Plot_Phases(tot_resu)
         #self.Plot_Color(tot_resu)
+        self.Plot_Effi_vs_Cadence(tot_resu)
         plt.show()
 
     def Plot_Sims(self,axbb,tab_resu):
@@ -309,7 +312,7 @@ class Ana_Simu:
         res=[]
         for key, val in tab_resu.items():
             print key,val.dtype
-            season=int(key[-1])
+            season=int(key.split('_')[2])-1
             spl=key.split('_')
             fieldname=spl[0]
             fieldid=spl[1]
@@ -351,9 +354,9 @@ class Ana_Simu:
                 #print z,np.median(sel[bef]),np.median(sel[aft]),np.median(sel[bef]+sel[aft])
                 idx = sel[what] > 0.
                 sel=sel[idx]
-                res.append((z+zstep/2.,np.mean(sel[what]),np.std(sel[what])))
+                res.append((z+zstep/2.,np.median(sel[what]),np.std(sel[what])))
 
-            season=int(key[-1])
+            season=int(key.split('_')[2])-1
             spl=key.split('_')
             fieldname=spl[0]
             fieldid=spl[1]
@@ -397,9 +400,9 @@ class Ana_Simu:
                 sel=val[np.where(np.logical_and(val['status']=='go_fit',val['fit_status']=='fit_ok'))]
                 sel=sel[np.where(np.logical_and(sel['z']>=z,sel['z']<z+zstep))]
                 #print z,np.median(sel[bef]),np.median(sel[aft]),np.median(sel[bef]+sel[aft])
-                res.append((z+zstep/2.,np.mean(sel[bef]),np.std(sel[bef]),np.mean(sel[aft]),np.std(sel[aft]),np.mean(sel[bef]+sel[aft]),np.std(sel[bef]+sel[aft])))
+                res.append((z+zstep/2.,np.median(sel[bef]),np.std(sel[bef]),np.median(sel[aft]),np.std(sel[aft]),np.median(sel[bef]+sel[aft]),np.std(sel[bef]+sel[aft])))
 
-            season=int(key[-1])
+            season=int(key.split('_')[2])-1
             spl=key.split('_')
             fieldname=spl[0]
             fieldid=spl[1]
@@ -444,14 +447,15 @@ class Ana_Simu:
             for z in zrange:
                 sol=sel[np.where(np.logical_and(sel['z']>=z,sel['z']<z+zstep))]
                 #print z,np.median(sel[phasef]),np.median(sel[phasel])
-                res.append((z+zstep/2.,np.mean(sol[phasef]),np.std(sol[phasef]),np.mean(sol[phasel]),np.std(sol[phasel])))
+                res.append((z+zstep/2.,np.median(sol[phasef]),np.std(sol[phasef]),np.median(sol[phasel]),np.std(sol[phasel])))
             
             tot=np.rec.fromrecords(res,names=['z','phase_first','phase_first_rms','phase_last','phase_last_rms']) 
-            season=int(key[-1])
+            season=int(key.split('_')[2])-1
             spl=key.split('_')
             fieldname=spl[0]
             fieldid=spl[1]
             ll='Y'+str(season+1)
+            #print 'legend',key,season,self.color[season]
             axa[0].errorbar(tot['z'],tot['phase_first'], yerr=tot['phase_first_rms'],marker=self.ms[season], mfc=self.color[season], mec=self.color[season],ms=8, linestyle='-',color='k',label=ll)
             axa[1].errorbar(tot['z'],tot['phase_last'], yerr=tot['phase_last_rms'],marker=self.ms[season], mfc=self.color[season], mec=self.color[season],ms=8, linestyle='-',color='k',label=ll)
 
@@ -477,22 +481,77 @@ class Ana_Simu:
             axa[1].plot(sel['phase_first'],np.sqrt(sel['salt2.CovColorColor']),'bo')
             axa[2].plot(sel['phase_last'],np.sqrt(sel['salt2.CovColorColor']),'bo')
             """
+
+
+    def Plot_Effi_vs_Cadence(self,tab_resu):
+        for band in 'grizy':
+            self.Plot_Effi_vs_Cadence_Indiv(tab_resu,band)
+        self.Plot_Effi_vs_Cadence_Indiv(tab_resu,'')
+
+    def Plot_Effi_vs_Cadence_Indiv(self,tab_resu,band):
+        
+        figa, axa = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+        #band='g'
+        what='cad'
+        if band != '':
+            what+='_'+band
+        zstep=0.1
+        zrange=np.arange(0.,0.3,zstep)
+        for key, val in tab_resu.items():
+            res=[]
+            sel=val.copy()
+            #sel=sel[np.where(np.logical_and(sel['N_bef']>=4,sel['N_aft']>=10))]
+            sel=sel[np.where(sel['N_bef']>=4)]
+            sel=sel[np.where(np.logical_and(sel['status']=='go_fit',sel['fit_status']=='fit_ok'))]
+            #sel=sel[np.where(np.logical_and(sel['phase_first']<=-5,sel['phase_last']>=20))]
+            for z in zrange:
+                sol=sel[np.where(np.logical_and(sel['z']>=z,sel['z']<z+zstep))]
+                ref=val[np.where(np.logical_and(val['z']>=z,val['z']<z+zstep))]
+                res.append((z+zstep/2.,float(len(sol))/float(len(ref)),np.median(sol[what]),np.std(sol[what])))
+            season=int(key.split('_')[2])-1
+            spl=key.split('_')
+            fieldname=spl[0]
+            fieldid=spl[1]
+            
+           
+            tot=np.rec.fromrecords(res,names=['z','effi','cad_mean','cad_rms'])
+            print tot
+            ll='Y'+str(season+1)
+            #axa.errorbar(tot['effi'],tot['cad_mean'], yerr=tot['cad_rms'],marker=self.ms[season], mfc=self.color[season], mec=self.color[season],ms=8, linestyle='-',color='k',label=ll) 
+            axa.plot(tot['cad_mean'],tot['effi'],marker=self.ms[season], mfc=self.color[season], mec=self.color[season],ms=8, linestyle='-',color='k',label=ll) 
+            
+        axa.set_xlabel('Median cadence [days$^{-1}$]')
+        axa.set_xlabel('Detection efficiency')
+        title=fieldname+' - '+fieldid+' - band '+band
+        axa.set_title(title)
+
+parser = OptionParser()
+parser.add_option("-f", "--fieldname", type="string", default='DD', help="filter [%default]")
+parser.add_option("-i", "--fieldid", type="int", default=290, help="filter [%default]")
+parser.add_option("-x", "--stretch", type="float", default=-999., help="filter [%default]")
+parser.add_option("-c", "--color", type="float", default=-999., help="filter [%default]")
+parser.add_option("-d", "--dirmeas", type="string", default="DD", help="filter [%default]")
+
+opts, args = parser.parse_args()
+
 dict_ana={}
 list_ana=[]
 #dict_ana['Mean_Obs_Faint_T0_0']=Id(thedir='Mean_Obs_T0_0',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
 #dict_ana['Mean_Obs']=Id(thedir='Mean_Obs',fieldname='WFD',fieldid=309,X1=-999.,Color=-999.,season=0,colorfig='r')
 
-fieldid=2786
+fieldid=opts.fieldid
+fieldname=opts.fieldname
+thedir=opts.dirmeas
 
 #X1=0.0
 #Color=0.0
 
-X1=-999.
-Color=-999.
+X1=opts.stretch
+Color=opts.color
 #for seas in [1]:
 for seas in [i for i in range(10)]:
     #dict_ana['Rolling_Faint_Seas'+str(seas+1)]=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=seas,colorfig='k')
-    dict_ana['DD_'+str(fieldid)+'_'+str(seas+1)]=Id(thedir='DD',fieldname='DD',fieldid=fieldid,X1=X1,Color=Color,season=seas,colorfig='k')
+    dict_ana['DD_'+str(fieldid)+'_'+str(seas+1)]=Id(thedir=thedir,fieldname=fieldname,fieldid=fieldid,X1=X1,Color=Color,season=seas,colorfig='k')
     #list_ana.append(('DD_290_'+str(seas+1),Id(thedir='DD',fieldname='DD',fieldid=290,X1=-1.,Color=-1.,season=seas,colorfig='k')))
     
 #dict_ana['Mean_Obs_Faint_newrefs']=Id(thedir='Mean_Obs_newrefs',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
