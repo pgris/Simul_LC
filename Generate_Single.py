@@ -29,6 +29,8 @@ class Generate_Single_LC:
         self.mysn=Generate_LC(params,telescope=self.telescope)
        
         self.obs=obs
+        self.duration=np.max(obs['mjd'])-np.min(obs['mjd'])
+
         self.bands=[b[-1:] for b in np.unique(self.obs['band'])]
 
         """
@@ -152,14 +154,16 @@ class Generate_Single_LC:
         self.dict_quality['phase']=(0.0,0.0)
         self.dict_quality['cadence_all']=(0.0,0.0)
 
+        #print 'Quality',self.tot_obs
         if self.tot_obs is not None:
             obs_sel=self.tot_obs[np.where(np.logical_and(self.tot_obs['flux']/self.tot_obs['fluxerr']>5.,self.tot_obs['flux']>0.))]
-            
+            #print 'obs SNR > 5.',len(obs_sel)
         #print self.Get_nums(obs_sel)
             if len(obs_sel) > 0:
                 obs_sel.sort('time')
                 n_bef_tot=0
                 n_aft_tot=0
+                #print obs_sel
                 for band in self.bands_rest:
                     idx=obs_sel['band']=='LSST::'+band
                     n_bef, n_aft=self.Get_nums(obs_sel[idx])
@@ -181,10 +185,11 @@ class Generate_Single_LC:
                 phase_last=(obs_sel[len(obs_sel)-1]['time']-self.T0)/(1.+self.z)
                 self.dict_quality['phase']=(phase_first,phase_last)
            
-
+                #print 'this is it',self.dict_quality['g'],self.dict_quality['r'],self.dict_quality['i'],self.dict_quality['z'],self.dict_quality['y']
         #print phase_first,phase_last
 
     def Get_nums(self, sel):
+        
         
         idxa=np.logical_and(sel['time'] <= self.T0,sel['time'] > self.T0-20)
         idxb=np.logical_and(sel['time']> self.T0,sel['time'] <= self.T0+40)
@@ -216,9 +221,13 @@ class Generate_Single_LC:
         resu['T0']=self.T0
         resu['X1']=self.X1
         resu['Color']=self.Color
+        resu['duration']=self.duration
+        #print 'yes',self.duration
+        
         for band in self.bands_rest:
             resu['N_bef_'+band]=self.dict_quality[band][0]
             resu['N_aft_'+band]=self.dict_quality[band][1]
+            #print 'resu',band,resu['N_bef_'+band],resu['N_aft_'+band]
             resu['cad_'+band]=self.dict_quality['cadence_'+band][0]
             resu['cad_rms_'+band]=self.dict_quality['cadence_'+band][1]
             resu['m5sigma_'+band]=self.dict_quality['m5sigma_'+band][0]
@@ -228,11 +237,13 @@ class Generate_Single_LC:
         resu['phase_last']=self.dict_quality['phase'][1]
         resu['N_bef']=self.dict_quality['all'][0]
         resu['N_aft']=self.dict_quality['all'][1]
+        #print 'in total',resu['N_bef'],resu['N_aft']
         resu['cad']=self.dict_quality['cadence_all'][0]
         resu['cad_rms']=self.dict_quality['cadence_all'][1]
         resu['status']=self.outdict['status']
         resu['fit_status']=self.outdict['fit_status']
 
+        resu['salt2.T0']=-999.
         resu['salt2.X0']=-999.
         resu['salt2.X1']=-999.
         resu['salt2.Color']=-999.
@@ -255,7 +266,7 @@ class Generate_Single_LC:
                 for i,pal in enumerate(self.outdict['sncosmo_res']['vparam_names']):
                     corr[pal]=i
                 #print 'hhe',i,pal
-
+                resu['salt2.T0']=self.outdict['sncosmo_fitted']['t0']
                 resu['salt2.X0']=self.outdict['sncosmo_fitted']['x0']
                 resu['salt2.X1']=self.outdict['sncosmo_fitted']['x1']
                 resu['salt2.Color']=self.outdict['sncosmo_fitted']['c']
@@ -266,7 +277,7 @@ class Generate_Single_LC:
                     resu['salt2.CovColorX0']=self.outdict['sncosmo_res']['covariance'][corr['c']][corr['x0']]
                     resu['salt2.CovColorX1']=self.outdict['sncosmo_res']['covariance'][corr['c']][corr['x1']]
                 resu['mbfit']=self.outdict['mbfit']
-
+                #print 'ohohoho',resu['salt2.T0']
         
         #print 'hello',resu.values(),resu.keys()
        

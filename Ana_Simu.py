@@ -9,6 +9,7 @@ from scipy.integrate import quad
 import os
 import collections
 from optparse import OptionParser
+from astropy.table import vstack,Table
 
 class Id:
     def __init__(self,thedir,fieldname,fieldid,X1,Color,season,colorfig):
@@ -62,7 +63,11 @@ class Ana_Simu:
 
             if os.path.exists(sum_file):
                 pkl_file = open(sum_file,'rb')
-                tot_resu[key]=pkl.load(pkl_file)
+                loaded_file=pkl.load(pkl_file)
+                #print 'done',key,tot_resu[key],tot_resu[key].dtype,sum_file
+                #idx = loaded_file['z']>=self.zmin and loaded_file['z']<self.zmax
+                tot_resu[key]=loaded_file
+                print 'done',key,sum_file,tot_resu[key].dtype
             else:
 
                 files = glob.glob(dirmeas+'/'+val.fieldname+'_'+str(val.fieldid)+'*_X1_'+str(val.X1)+'_C_'+str(val.Color)+'*.pkl')
@@ -81,9 +86,13 @@ class Ana_Simu:
                 
                 pkl_out.close()
        
+            """
+            print 'there',key,tot_resu[key],tot_resu[key].dtype
+            for band in 'grizy':
+                print band,tot_resu[key]['N_bef_'+band],tot_resu[key]['N_aft_'+band]
+            print 'all bands',tot_resu[key]['N_bef'],tot_resu[key]['N_aft']
+            """
 
-            print 'there',key,len(tot_resu[key]),tot_resu[key].dtype
-         
         # this is for simulated parameters
     
         figb, axb = plt.subplots(ncols=2, nrows=2, figsize=(10,9))
@@ -121,21 +130,39 @@ class Ana_Simu:
             sel=val.copy()
             selb=val.copy()
             selc=val.copy()
+            seld=val.copy()
             sel=sel[np.where(np.logical_and(sel['N_bef']>=4,sel['N_aft']>=10))]
+            logical_test={}
+            
+            for band in 'grizy':
+                logical_test[band]=np.logical_and(sel['N_bef_'+band]>=1,sel['N_aft_'+band]>=1)
+
+            logical_and_g_r=np.logical_and(logical_test['g'],logical_test['r'])
+            logical_and_r_i=np.logical_and(logical_test['r'],logical_test['i'])
+            logical_and_i_z=np.logical_and(logical_test['i'],logical_test['z'])
+            logical_and_z_y=np.logical_and(logical_test['z'],logical_test['y'])
+                    
+            sel=sel[np.where(np.logical_or(np.logical_or(np.logical_or(logical_and_g_r,logical_and_r_i),logical_and_i_z),logical_and_z_y))]
+
             #sel=val[np.where(val['N_bef']>=4)]
             #sel=val[np.where(val['N_aft']>=10)]
             #sel=sel[np.where(sel['status']=='go_fit')]
             sel=sel[np.where(np.logical_and(sel['status']=='go_fit',sel['fit_status']=='fit_ok'))]
             sel=sel[np.where(np.logical_and(sel['phase_first']<=-5,sel['phase_last']>=20))]
-            
+            #sel=sel[np.where(sel['phase_last']>=20)]
+            #sel=sel[np.where(np.sqrt(sel['salt2.CovColorColor'])<0.04)]
+
             selb=selb[np.where(selb['status']=='no_obs')]
             #selc=selc[np.where(selc['fit_status']=='crashd')]
             #selc=selc[np.where(selc['status']=='unknown')]
             #selc=selc[np.where(np.logical_or(selc['phase_first']>=-5,selc['phase_last']<=20))]
             #selc=selc[np.where(np.logical_and(selc['phase_first']>=-500.,selc['phase_last']>=-500.))]
             selc=selc[np.where(np.logical_and(selc['status']=='go_fit',selc['fit_status']=='fit_ok'))]
-            selc=selc[np.where(np.logical_or(selc['phase_first']>-5,selc['phase_last']<20))]
+            #selc=selc[np.where(np.logical_or(selc['phase_first']>-5,selc['phase_last']<20))]
+            selc=selc[np.where(~np.logical_and(selc['phase_first']<=-5,selc['phase_last']>=20))]
+            #seld=seld[np.where(np.logical_and(seld['status']=='go_fit',seld['fit_status']=='fit_ok'))]
             
+            seld=seld[np.where(np.logical_and(seld['status']=='go_fit',seld['fit_status']=='crashd'))]
             """
         #print sel['phase_first'],sel['phase_last']
         for i,val in enumerate([(0.,0.),(2.0,-0.2),(-2.0,0.2)]):
@@ -144,9 +171,13 @@ class Ana_Simu:
             selc=sel[np.where(np.logical_and(sel['X1']==val[0],sel['Color']==val[1]))]
             """
             #Efficiency per season vs z plot
+            
             self.Plot_Eff(axa,val,sel,'z',dict_ana[key].colorfig,dict_ana[key].season,key,0)
+            """
             self.Plot_Eff(axca,val,selb,'z',dict_ana[key].colorfig,dict_ana[key].season,key,1)
             self.Plot_Eff(axca,val,selc,'z',dict_ana[key].colorfig,dict_ana[key].season,key,2)
+            self.Plot_Eff(axca,val,seld,'z',dict_ana[key].colorfig,dict_ana[key].season,key,3)
+            """
             # number of supernovae per season
             self.Plot_N_SN(axc,val,sel,'z',dict_ana[key].colorfig,dict_ana[key].season,key,idraw)
 
@@ -166,12 +197,12 @@ class Ana_Simu:
         axc.set_title(title)
         #axc.set_xlim(self.zmin,self.zmax+0.01)
 
-        self.Plot_m5(tot_resu)
+        #self.Plot_m5(tot_resu)
         #self.Plot_Cadences(tot_resu)
         #self.Plot_Nobs(tot_resu)
         #self.Plot_Phases(tot_resu)
-        #self.Plot_Color(tot_resu)
-        self.Plot_Effi_vs_Cadence(tot_resu)
+        self.Plot_Color(tot_resu)
+        #self.Plot_Effi_vs_Cadence(tot_resu)
         plt.show()
 
     def Plot_Sims(self,axbb,tab_resu):
@@ -234,10 +265,11 @@ class Ana_Simu:
         #tot_label.append(axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=marker, mfc=colors[key], mec=colors[key], ms=8, linestyle=myfmt[i],color='k',label=ll))
         ll='Y'+str(season+1)
         
-       
+        
         axc.set_xlabel('z')
         if idraw == 0:
             axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season], mfc=self.color[season], mec=self.color[season], ms=8, linestyle='-',color=color,label=ll)
+            #axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season], mfc=color, mec=color, ms=8, linestyle='-',color=color,label=ll)
             axc.set_ylabel('Efficiency')
             axc.legend(loc='best',prop={'size':12})
             axc.set_xlim(self.zmin,np.max(bin_center)+0.01)
@@ -246,7 +278,8 @@ class Ana_Simu:
                 myls='--'
             else:
                 myls = ':'
-            axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season], mfc='k', mec='k', ms=8, linestyle=myls,color='k',label=ll)
+            axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season],  mfc=self.color[season], mec=self.color[season], ms=8, linestyle=myls,color='k',label=ll)
+            #axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season],  mfc=color, mec=color, ms=8, linestyle=myls,color='k',label=ll)
             axc.set_ylabel('Fraction of Events') 
 
 
@@ -303,8 +336,36 @@ class Ana_Simu:
         axc.plot(sel[varx],sel[vary],color+'.')
 
     def Plot_m5(self,tab_resu):
+        
+        figa, axa = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+        what='m5sigma'
+        res=[]
+        filtercolors = {'u':'b', 'g':'c', 'r':'g', 'i':'y', 'z':'r', 'y':'m'}
+        for key, val in tab_resu.items():
+            print key,val.dtype
+            season=int(key.split('_')[2])-1
+            spl=key.split('_')
+            fieldname=spl[0]
+            fieldid=spl[1]
+            sel=val[np.where(np.logical_and(val['status']=='go_fit',val['fit_status']=='fit_ok'))]
+            
+            for band in 'grizy':
+                sel = sel[~np.isnan(sel['m5sigma_'+band])]
+                res.append((season+1,np.median(sel['m5sigma_'+band]),np.std(sel['m5sigma_'+band]),band))
+
+        tot=np.rec.fromrecords(res,names=['season','m5_mean','m5_rms','band'])
+        tot.sort(order='season')
+        print band,tot['m5_mean']
         for band in 'grizy':
-            self.Plot_m5_Indiv(tab_resu,band)
+            idx = tot['band'] == band
+            sel=tot[idx]
+            axa.errorbar(sel['season'],sel['m5_mean'], marker='.', mfc='k', mec='k',ms=8,color=filtercolors[band],label=band+' band')
+            axa.set_xlabel('year')
+            axa.set_ylabel('Median m5 [mag]')
+            title=fieldname+' - '+fieldid
+        axa.set_title(title)
+        axa.legend(loc='best',prop={'size':12})
+        #axa.set_xlim(0.8,10.2)
 
     def Plot_m5_Indiv(self,tab_resu,band):
         figa, axa = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
@@ -337,7 +398,7 @@ class Ana_Simu:
 
     def Plot_Cadences_Indiv(self,tab_resu,band):
 
-        figa, axa = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+        figa, axa = plt.subplots(ncols=1, nrows=2, figsize=(10,9))
         what='cad'
         if band != '':
             what+='_'+band
@@ -362,24 +423,48 @@ class Ana_Simu:
             fieldid=spl[1]
             tot=np.rec.fromrecords(res,names=['z','cad_mean','cad_rms'])
             ll='Y'+str(season+1)
-            axa.errorbar(tot['z'],tot['cad_mean'], yerr=tot['cad_rms'],marker=self.ms[season], mfc=self.color[season], mec=self.color[season],ms=8, linestyle='-',color='k',label=ll)          
-           
+            axa[0].errorbar(tot['z'],tot['cad_mean'],marker=self.ms[season], mfc=self.color[season], mec=self.color[season],ms=8, linestyle='-',color='k',label=ll) 
+            axa[1].errorbar(tot['z'],tot['cad_rms'],marker=self.ms[season], mfc=self.color[season], mec=self.color[season],ms=8, linestyle='-',color='k',label=ll)
+            
  
-        axa.set_xlabel('z')
-        axa.set_ylabel('Mean cadence (observer frame) [days$^{-1}$]')
+        axa[0].set_xlabel('z')
+        axa[0].set_ylabel('Mean cadence (observer frame) [days$^{-1}$]')
         
+        axa[1].set_xlabel('z')
+        axa[1].set_ylabel('RMS cadence (observer frame) [days$^{-1}$]')
+
+
         title=fieldname+' - '+fieldid
         if band != '':
             title +=' - '+band+' band'
-        axa.set_title(title)
-        axa.legend(loc='best',prop={'size':12})
+        axa[0].set_title(title)
+        axa[0].legend(loc='best',prop={'size':12})
         #axa.plot(tot['z'],tot['Nbef'],'bo')
     
     def Plot_Nobs(self,tab_resu):
         
         for band in 'grizy':
-            self.Plot_Nobs_Indiv(tab_resu,band)
-        self.Plot_Nobs_Indiv(tab_resu,'') 
+            self.Plot_Nobs_Indiv_all(tab_resu,band)
+        self.Plot_Nobs_Indiv_all(tab_resu,'') 
+
+    def Plot_Nobs_Indiv_all(self,tab_resu,band):
+
+        figa, axa = plt.subplots(ncols=1, nrows=3, figsize=(10,9))
+        figa.suptitle(band+' band')
+        bef='N_bef'
+        aft='N_aft'
+        
+        if band != '':
+            bef+='_'+band
+            aft+='_'+band
+        
+        for key, val in tab_resu.items():
+            sel=val[np.where(np.logical_and(val['status']=='go_fit',val['fit_status']=='fit_ok'))]
+            sel=sel[np.where(np.logical_and(sel['T0']>=60.,sel['T0']<61.))]
+            sel=sel[np.where(sel['z']<0.001)]
+            axa[0].plot(sel['T0'],sel[bef],'bo')
+            axa[1].plot(sel['T0'],sel[aft],'bo')
+            axa[2].plot(sel['T0'],sel[bef]+sel[aft],'bo')
 
     def Plot_Nobs_Indiv(self,tab_resu,band):
 
@@ -438,27 +523,33 @@ class Ana_Simu:
         phasef='phase_first'
         phasel='phase_last'
         zstep=0.05
-        zrange=np.arange(0.,1.,zstep)
+        zrange=np.arange(0.,1.+zstep,zstep)
         for key, val in tab_resu.items():
             res=[]
             sel=val[np.where(np.logical_and(val['status']=='go_fit',val['fit_status']=='fit_ok'))]
+            sel=sel[np.where(np.logical_and(sel['N_bef']>=4,sel['N_aft']>=10))]
             #print sel['z']
             #sel=sel[np.where(np.logical_or(sel['phase_first']>-5,sel['phase_last']<20))]
             for z in zrange:
                 sol=sel[np.where(np.logical_and(sel['z']>=z,sel['z']<z+zstep))]
                 #print z,np.median(sel[phasef]),np.median(sel[phasel])
-                res.append((z+zstep/2.,np.median(sol[phasef]),np.std(sol[phasef]),np.median(sol[phasel]),np.std(sol[phasel])))
+                res.append((z+zstep/2.,np.mean(sol[phasef]),np.std(sol[phasef]),np.mean(sol[phasel]),np.std(sol[phasel])))
             
             tot=np.rec.fromrecords(res,names=['z','phase_first','phase_first_rms','phase_last','phase_last_rms']) 
             season=int(key.split('_')[2])-1
             spl=key.split('_')
             fieldname=spl[0]
             fieldid=spl[1]
+            season=int(fieldid)-120
             ll='Y'+str(season+1)
+            
             #print 'legend',key,season,self.color[season]
+            
             axa[0].errorbar(tot['z'],tot['phase_first'], yerr=tot['phase_first_rms'],marker=self.ms[season], mfc=self.color[season], mec=self.color[season],ms=8, linestyle='-',color='k',label=ll)
             axa[1].errorbar(tot['z'],tot['phase_last'], yerr=tot['phase_last_rms'],marker=self.ms[season], mfc=self.color[season], mec=self.color[season],ms=8, linestyle='-',color='k',label=ll)
 
+            
+            
         axa[1].legend(loc='upper right',prop={'size':12})
         axa[0].set_xlabel('z')
         axa[0].set_ylabel('<phase first point> (restframe) [days]')
@@ -469,19 +560,39 @@ class Ana_Simu:
         axa[1].plot(zrange,[20.]*len(zrange),ls='-',color='k')
         title=fieldname+' - '+fieldid
         axa[0].set_title(title)
+        axa[0].set_xlim([np.min(zrange),np.max(zrange)])
+        axa[1].set_xlim([np.min(zrange),np.max(zrange)])
 
     def Plot_Color(self,tab_resu):
 
         figa, axa = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+        bcolors='bcgyrm'
+        icol=-1
+        fontsize=12
         for key, val in tab_resu.items():
+            icol+=1
             sel=val[np.where(np.logical_and(val['status']=='go_fit',val['fit_status']=='fit_ok'))]
+            sel=sel[np.where(np.logical_and(sel['N_bef']>=4,sel['N_aft']>=10))]
+            selc=sel[np.where(~np.logical_and(sel['phase_first']<=-5,sel['phase_last']>=20))]
             sel=sel[np.where(np.logical_and(sel['phase_first']<=-5,sel['phase_last']>=20))]
-            axa.plot(sel['z'],np.sqrt(sel['salt2.CovColorColor']),'bo')
+            logical_or_r_i=np.logical_or(sel['N_bef_r']>=2,sel['N_bef_i']>=2)
+            logical_or_z_y=np.logical_or(sel['N_bef_z']>=2,sel['N_bef_y']>=2)
+            
+                    
+            sel=sel[np.where(np.logical_or(logical_or_r_i,logical_or_z_y))]
+
+
+            #axa.plot(sel['z'],np.sqrt(sel['salt2.CovColorColor']),'.',label=key)
+            axa.plot(sel['T0'],np.sqrt(sel['salt2.CovColorColor']),'.',label=key)
+            #axa.plot(selc['z'],np.sqrt(selc['salt2.CovColorColor']),'k*',label=key)
+            print 'ahahah',key
             """
             axa[1].plot(sel['phase_first'],np.sqrt(sel['salt2.CovColorColor']),'bo')
             axa[2].plot(sel['phase_last'],np.sqrt(sel['salt2.CovColorColor']),'bo')
             """
-
+        axa.legend(loc='best',prop={'size':fontsize})
+        axa.set_xlabel('z',{'fontsize': fontsize})
+        axa.set_ylabel('$\sigma_{C}$',{'fontsize': fontsize})
 
     def Plot_Effi_vs_Cadence(self,tab_resu):
         for band in 'grizy':
@@ -548,13 +659,38 @@ thedir=opts.dirmeas
 
 X1=opts.stretch
 Color=opts.color
+
+Corresp=dict(zip([120,124,128,132,136,140,144,148],[3,4,5,6,7,8,9,10]))
+
+filtercolors = dict(zip([120,124,128,132,136,140,144,148],['b','c','g','y','r','m','k','#eeefff']))
+Corresp=dict(zip([123,127,131,135,139,143,147,151],[3,4,5,6,7,8,9,10]))
+filtercolors = dict(zip([123,127,131,135,139,143,147,151],['b','c','g','y','r','m','k','#eeefff']))
+filtercolors = dict(zip(range(10),['b','c','g','y','r','m','k','#ffa400','#fe871c','#1e4033']))
 #for seas in [1]:
-for seas in [i for i in range(10)]:
-    #dict_ana['Rolling_Faint_Seas'+str(seas+1)]=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=seas,colorfig='k')
+for seas in [i for i in range(10)]: 
     dict_ana['DD_'+str(fieldid)+'_'+str(seas+1)]=Id(thedir=thedir,fieldname=fieldname,fieldid=fieldid,X1=X1,Color=Color,season=seas,colorfig='k')
+    #dict_ana['Rolling_Faint_Seas'+str(seas+1)]=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=seas,colorfig='k')
+    """
+    for pseason in range(10):
+        dict_ana['DD_'+str(pseason)+'_1_'+str(fieldid)+'_'+str(seas+1)]=Id(thedir=thedir,fieldname=fieldname+'_'+str(pseason)+'_1',fieldid=fieldid,X1=X1,Color=Color,season=seas,colorfig=filtercolors[pseason])
+    """
+    
+
+    #dict_ana['DD_1_2_'+str(fieldid)+'_'+str(seas+1)]=Id(thedir=thedir,fieldname=fieldname+'_1_2',fieldid=fieldid,X1=X1,Color=Color,season=seas,colorfig='k')
+    #dict_ana['DD_'+str(fieldid+1)+'_'+str(seas+1)]=Id(thedir=thedir,fieldname=fieldname,fieldid=fieldid+1,X1=X1,Color=Color,season=seas,colorfig='r')
+    #dict_ana['DD_'+str(fieldid+2)+'_'+str(seas+1)]=Id(thedir=thedir,fieldname=fieldname,fieldid=fieldid+2,X1=X1,Color=Color,season=seas,colorfig='g')
     #list_ana.append(('DD_290_'+str(seas+1),Id(thedir='DD',fieldname='DD',fieldid=290,X1=-1.,Color=-1.,season=seas,colorfig='k')))
     
+    """
+    for X1,Color in zip([0.,2.,-2.],[0.,-0.2,0.2]):
+    #for X1,Color in zip([2.],[-0.2]):
+        print 'hello',X1,Color
+        for i in range(1):
+            val=i*4
+            dict_ana['DD_'+str(Corresp[fieldid+val])+'_'+str(seas+1)+'_'+str(X1)+'_'+str(Color)]=Id(thedir=thedir,fieldname=fieldname,fieldid=fieldid+val,X1=X1,Color=Color,season=seas,colorfig=filtercolors[fieldid+val])
+     """
+       
 #dict_ana['Mean_Obs_Faint_newrefs']=Id(thedir='Mean_Obs_newrefs',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
 
 #dict_ana_ordered=collections.OrderedDict(sorted(dict_ana.items()))
-Ana_Simu(dict_ana,zmin=0.,zmax=1.0,bin_z=0.1)
+Ana_Simu(dict_ana,zmin=0.,zmax=1.1,bin_z=0.05)

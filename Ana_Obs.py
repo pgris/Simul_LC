@@ -61,6 +61,7 @@ def Plot(dirmeas,fieldname,fieldid,title):
         refmag=[m5_lim[b]]*10
         axa[0].plot([i for i in range(1,11)],refmag,bcolors[b],ls='--')
         axa[1].plot([i for i in range(1,11)],refmag-fin['m5_'+b],bcolors[b],label=ll)
+        print 'hello',b,np.median(fin['m5_'+b]),m5_lim[b]-np.median(fin['m5_'+b])
 
     axa[0].set_xlim([-1,10])
     axa[0].set_xlabel('Season')
@@ -76,8 +77,8 @@ def Plot(dirmeas,fieldname,fieldid,title):
 
 dictplot={}
 #dictplot['WFD']=('WFD',309,'WFD - '+str(309))
-dictplot['WFD_Rolling_noTwilight']=('WFD',309,'WFD Rolling - '+str(309))
-#dictplot['DD']=('DD',290,'DD - '+str(290))
+#dictplot['WFD_Rolling_noTwilight']=('WFD',309,'WFD Rolling - '+str(309))
+dictplot['DD']=('DD',290,'DD - '+str(290))
 
 for key,vals in dictplot.items():
     Plot(key,vals[0],vals[1],vals[2])

@@ -19,6 +19,7 @@ parser.add_option("-n", "--fieldid", type="int", default=309, help="filter [%def
 parser.add_option("-s", "--season", type="int", default=1, help="filter [%default]")
 parser.add_option("-z", "--zmin", type="float", default=0.0, help="filter [%default]")
 parser.add_option("-Z", "--zmax", type="float", default=0.1, help="filter [%default]")
+parser.add_option("--zrandom", type="string", default="yes", help="filter [%default]")
 parser.add_option("-x", "--stretch", type="float", default=2.0, help="filter [%default]")
 parser.add_option("-c", "--color", type="float", default=-0.2, help="filter [%default]")
 parser.add_option("-t", "--sntype", type="string", default="Ia", help="filter [%default]")
@@ -38,6 +39,7 @@ num_season=opts.season
 N_sn=opts.nevts
 zmin=opts.zmin
 zmax=opts.zmax
+zrandom=opts.zrandom
 T0random=opts.T0random
 X1=opts.stretch
 Color=opts.color
@@ -98,7 +100,11 @@ for i in range(0,n_batch):
         else:
             T0=0
             
-        z=np.random.uniform(zmin,zmax)
+        if zrandom=='yes':
+            z=np.random.uniform(zmin,zmax)
+        else:
+            z=zmin
+
         X1_val=X1
         Color_val=Color
         if X1 == -999.:
