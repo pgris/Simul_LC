@@ -94,14 +94,18 @@ class Ana_Simu:
             """
 
         # this is for simulated parameters
-    
+
+        """
         figb, axb = plt.subplots(ncols=2, nrows=2, figsize=(10,9))
         for key in dict_ana.keys():
             self.Plot_Sims(axb,tot_resu[key])
-        
+        """
 
         self.nsn_tot=0.
         self.err_tot=0.
+        self.nsn_theo=0
+        self.err_theo=0
+        self.res_nsn=[]
         self.ms=['o','o','s','s','.','.','^','^','<','<']
         self.color=['b','r','b','r','b','r','b','r','b','r']
         figa, axa = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
@@ -179,7 +183,7 @@ class Ana_Simu:
             self.Plot_Eff(axca,val,seld,'z',dict_ana[key].colorfig,dict_ana[key].season,key,3)
             """
             # number of supernovae per season
-            self.Plot_N_SN(axc,val,sel,'z',dict_ana[key].colorfig,dict_ana[key].season,key,idraw)
+            self.Plot_N_SN(axc,val,sel,'z',dict_ana[key].colorfig,dict_ana[key].season,key,idraw,dict_ana[key].fieldname,dict_ana[key].fieldid,cumul=False)
 
             #print 'boouh',key,dict_ana[key].colorfig,dict_ana[key].season
 
@@ -193,20 +197,30 @@ class Ana_Simu:
         print 'in total :',self.nsn_tot,'+-',np.power(self.err_tot,0.5)
         axa.set_title(title)
         #axa.set_xlim(self.zmin,self.zmax+0.01)
-        title+=' - N$_{SN Ia}$ ='+str(int(self.nsn_tot))+'$\pm$'+str(int(np.power(self.err_tot,0.5)))
+        nsntot_str=str(int(self.nsn_tot))+'$\pm$'+str(int(np.power(self.err_tot,0.5)))
+        nsntheo_str=str(int(self.nsn_theo))+'$\pm$'+str(int(np.power(self.err_theo,0.5)))
+        title+=' - N$_{SN Ia}$ = '+nsntot_str +' / '+nsntheo_str
         axc.set_title(title)
+
+        
+        rate_nsn=np.rec.fromrecords(self.res_nsn,names=['fieldname','fieldid','season','n_sn_detected','err_detected','n_sn_expected','err_expected'])
+        fieldname=rate_nsn['fieldname'][0]
+        fieldid=rate_nsn['fieldid'][0]
+        pkl_out=open('N_SN_'+fieldname+'_'+str(fieldid)+'.pkl','wb')
+        pkl.dump(rate_nsn,pkl_out)
+        pkl_out.close()
+
         #axc.set_xlim(self.zmin,self.zmax+0.01)
 
         #self.Plot_m5(tot_resu)
         #self.Plot_Cadences(tot_resu)
         #self.Plot_Nobs(tot_resu)
         #self.Plot_Phases(tot_resu)
-        self.Plot_Color(tot_resu)
+        #self.Plot_Color(tot_resu)
         #self.Plot_Effi_vs_Cadence(tot_resu)
         plt.show()
 
     def Plot_Sims(self,axbb,tab_resu):
-        
         
         fontsize=10
 
@@ -265,7 +279,6 @@ class Ana_Simu:
         #tot_label.append(axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=marker, mfc=colors[key], mec=colors[key], ms=8, linestyle=myfmt[i],color='k',label=ll))
         ll='Y'+str(season+1)
         
-        
         axc.set_xlabel('z')
         if idraw == 0:
             axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season], mfc=self.color[season], mec=self.color[season], ms=8, linestyle='-',color=color,label=ll)
@@ -283,19 +296,19 @@ class Ana_Simu:
             axc.set_ylabel('Fraction of Events') 
 
 
-    def Plot_N_SN(self,axb,sela,selb,varname,color,season,ll,idraw):
+    def Plot_N_SN(self,axb,sela,selb,varname,color,season,ll,idraw,fieldname,fieldid,cumul):
         tot_label=[]
         #figc, axc = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
-        self.Plot_Eff_Indiv_N_SN(axb,sela,selb,varname,tot_label,ll,color,season,idraw)
+        self.Plot_Eff_Indiv_N_SN(axb,sela,selb,varname,tot_label,ll,color,season,idraw,fieldname,fieldid,cumul)
 
-    def Plot_Eff_Indiv_N_SN(self,axb,sela,selb,varname,tot_label,ll,color,season,idraw):
+    def Plot_Eff_Indiv_N_SN(self,axb,sela,selb,varname,tot_label,ll,color,season,idraw,fieldname,fieldid,cumul=False):
 
         bin_center, ratio, ratio_err,norm,norm_err= self.Histo_ratio(sela,selb,varname)
 
         effi = interpolate.interp1d(bin_center,ratio)
 
         rate_name='Perret'
-        sn_rate=SN_Rate(rate=rate_name)
+        sn_rate=SN_Rate(rate=rate_name,effective_duration=selb['duration'][0]/360.)
 
         #zz,rate,err_rate,nsn,err_nsn=sn_rate(self.zmin,self.zmax,self.bin_z)
         zz,rate,err_rate,nsn,err_nsn=sn_rate(bins=bin_center)
@@ -314,16 +327,28 @@ class Ana_Simu:
         err_N_sn=np.power(np.sum(np.power(yerr_combi,2.)),0.5)
         self.nsn_tot+=np.sum(combi)
         self.err_tot+=np.power(err_N_sn,2.)
+        self.nsn_theo+=np.sum(nsn_season(zz))
+        self.err_theo+=np.sum(np.power(err_nsn_season(zz),2.))
+        self.res_nsn.append((fieldname,fieldid,season,np.sum(combi),err_N_sn,np.sum(nsn_season(zz)),np.sum(np.power(err_nsn_season(zz),2.))))
         #axc[1].plot(zz,nsn,'b+')
         #axc[1].plot(zz,nsn_season(zz),marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='black')
-        if idraw == 0:
-            axb.errorbar(zz,nsn_season(zz),yerr=err_nsn_season(zz),marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='black',label='N$_{SN Ia}$ expected ('+rate_name+' rate) : '+str(int(np.sum(nsn_season(zz))))+'$\pm$'+str(int(np.power(np.sum(np.power(err_nsn_season(zz),2.)),0.5))))
+        if idraw >= 0:
+            if not cumul:
+                axb.errorbar(zz,nsn_season(zz),yerr=err_nsn_season(zz),marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='black')
+            else:
+                axb.errorbar(zz,np.cumsum(nsn_season(zz)),marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='black')
+            
         #axc[1].plot(zz,nsn_season(zz)*effi(zz),marker='.', mfc='red', mec='red', ms=8, linestyle='-',color=color)
+        nsn_str= str(int(np.sum(nsn_season(zz))))+'$\pm$'+str(int(np.power(np.sum(np.power(err_nsn_season(zz),2.)),0.5)))
         if season < 9:
-            ll='Y'+str(season+1)+'   - N$_{SN Ia}$ = '+str(int(N_sn))+' $\pm$ '+str(int(err_N_sn))
+            ll='Y'+str(season+1)+'   - N$_{SN Ia}$ = '+str(int(N_sn))+' $\pm$ '+str(int(err_N_sn))+' / '+nsn_str
         else:
-            ll='Y'+str(season+1)+' - N$_{SN Ia}$ = '+str(int(N_sn))+' $\pm$ '+str(int(err_N_sn))
-        axb.errorbar(zz,combi,yerr=yerr_combi,marker=self.ms[season], mfc=self.color[season], mec=self.color[season], ms=8, linestyle='-',color=color,label=ll)
+            ll='Y'+str(season+1)+' - N$_{SN Ia}$ = '+str(int(N_sn))+' $\pm$ '+str(int(err_N_sn))+ ' / '+nsn_str
+
+        if not cumul:
+            axb.errorbar(zz,combi,yerr=yerr_combi,marker=self.ms[season], mfc=self.color[season], mec=self.color[season], ms=8, linestyle='-',color=color,label=ll)
+        else:
+            axb.errorbar(zz,np.cumsum(combi),marker=self.ms[season], mfc=self.color[season], mec=self.color[season], ms=8, linestyle='-',color=color,label=ll)
         #axc[1].set_yscale('log')
         axb.set_xlabel('z')
         axb.set_ylabel('Number of SN Ia')
