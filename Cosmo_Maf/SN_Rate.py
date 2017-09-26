@@ -7,18 +7,21 @@ STERADIAN2SQDEG = 180.**2 / np.pi**2
 norm = 1. / (4. * np.pi) 
 
 class SN_Rate:
-    def __init__(self, rate='Ripoche',H0=70,Om0=0.25,survey_area=9.6,effective_duration=0.5):
+    def __init__(self, rate='Ripoche',H0=70,Om0=0.25,survey_area=9.6,duration=0.5,min_rf_phase=-15.,max_rf_phase=30.):
 
         self.astropy_cosmo=FlatLambdaCDM(H0=H0, Om0=Om0)
         self.rate=rate
         self.survey_area=survey_area
-        self.effective_duration=effective_duration
+        self.duration=duration
+        self.min_rf_phase=min_rf_phase
+        self.max_rf_phase=max_rf_phase
 
-    def __call__(self,zmin=0.1,zmax=0.2,dz=0.01,bins=None):
+    def __call__(self,zmin=0.1,zmax=0.2,dz=0.01,bins=None,account_for_edges=False):
         
         if bins is None:
             thebins = np.arange(zmin, zmax+dz, dz)
             zz = 0.5 * (thebins[1:] + thebins[:-1])
+            
         else:
             zz=bins
             thebins=bins
@@ -27,17 +30,25 @@ class SN_Rate:
 
         rate, err_rate = self.sn_rate(zz)
                 
-        area = norm* self.survey_area / STERADIAN2SQDEG # or area= self.survey_area/41253.
-        dvol = self.astropy_cosmo.comoving_volume(thebins).value
-        print 'after rate',len(zz),len(rate),len(dvol),dvol
+        area = self.survey_area / STERADIAN2SQDEG # or area= self.survey_area/41253.
+    
+        dvol = norm*self.astropy_cosmo.comoving_volume(thebins).value
+        #print 'after rate',len(zz),len(rate),len(dvol),area,rate
         dvol = dvol[1:] - dvol[:-1]
-        print 'here',dvol
+        #print 'dvol',dvol
+
         
-        nsn=rate * area * dvol * self.effective_duration / (1.+zz)
-        err_nsn=err_rate* area * dvol * self.effective_duration / (1.+zz)
+        if account_for_edges:
+            margin = (1.+zz) * (self.max_rf_phase-self.min_rf_phase) / 365.25
+            effective_duration = self.duration - margin
+            effective_duration[effective_duration<=0.] = 0.
+        else:
+            effective_duration = self.duration
+
+        nsn=rate * area * dvol * effective_duration / (1.+zz)
+        err_nsn=err_rate* area * dvol * effective_duration / (1.+zz)
         return zz,rate, err_rate,nsn, err_nsn
         
-
 
     def ripoche_rate(self, z):
         """The SNLS SNIa rate according to the (unpublished) Ripoche et al study.

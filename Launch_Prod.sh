@@ -7,8 +7,9 @@ stretch=$4
 color=$5
 zmin=$6
 zmax=$7
+zstep=$8
 for season in {0..9}
 do
    #echo "Welcome $season times"
-   python Loop_Prod.py --fieldname $fieldname --fieldid $fieldid --zmin $zmin --zmax $zmax --stretch $stretch --color $color --season $season --nevts 1000 --dirmeas $thedir
+   python Loop_Prod.py --fieldname $fieldname --fieldid $fieldid --zmin $zmin --zmax $zmax --stretch $stretch --color $color --season $season --nevts 1000 --dirmeas $thedir --zstep ${zstep}
 done

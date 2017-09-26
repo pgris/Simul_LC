@@ -2,14 +2,14 @@ from SN_Rate import *
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 
-rate=SN_Rate()
+rate=SN_Rate(survey_area=10.)
 
-zz,rate_one,err_rate,nsn,err_nsn=rate(0.001,1.2,0.05)
+zz,rate_one,err_rate,nsn,err_nsn=rate(0.1,1.,0.01)
 
-rateb=SN_Rate(rate='Perret')
-zzb,rate_two,err_rateb,nsnb,err_nsnb=rateb(0.001,1.2,0.05)
+rateb=SN_Rate(rate='Perret',survey_area=10.)
+zzb,rate_two,err_rateb,nsnb,err_nsnb=rateb(0.1,1.,0.01,account_for_edges=True)
 
-print zz, nsn
+print zz, nsn,nsnb
 
 figbb, axbb = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
 axbb.errorbar(zz,1.e4*rate_one,yerr=1.e4*err_rate,marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='blue',label='Ripoche rate (20% uncert.)')

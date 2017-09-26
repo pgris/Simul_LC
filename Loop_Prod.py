@@ -5,6 +5,7 @@ import os
 parser = OptionParser()
 parser.add_option("-z", "--zmin", type="float", default=0.1, help="filter [%default]")
 parser.add_option("-Z", "--zmax", type="float", default=0.2, help="filter [%default]")
+parser.add_option("--zstep", type="float", default=0.1, help="filter [%default]")
 parser.add_option("-N", "--nevts", type="int", default=10, help="filter [%default]")
 parser.add_option("-m", "--model", type="string", default='salt2-extended', help="filter [%default]")
 parser.add_option("-v", "--version", type="string", default='', help="filter [%default]")
@@ -29,8 +30,7 @@ stretch=opts.stretch
 color=opts.color
 dirmeas=opts.dirmeas
 T0random=opts.T0random
-
-zstep=0.1
+zstep=opts.zstep
 
 range_loop=np.arange(opts.zmin,opts.zmax,zstep)
 #print range_loop

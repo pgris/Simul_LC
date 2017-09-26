@@ -14,6 +14,7 @@ def Plot_Obs_per_Field(resu):
         figa.suptitle(fieldname+' field - '+str(fieldid))
         tot_label=[]
         sela=resu[idx]
+        m5_var={}
         for season in range(10):
             idxb = sela['season']==season
             selb=sela[idxb]
@@ -21,13 +22,17 @@ def Plot_Obs_per_Field(resu):
             y=[]
             z=[]
             w=[]
+            
             for b in bands:
+                if not m5_var.has_key(b):
+                    m5_var[b]=[]
                 idxc = selb['band']==b
                 selc=selb[idxc]
                 x.append(selc['ib'][0])
                 y.append(selc['airmass'][0])
                 z.append(selc['m5'][0])
                 w.append(selc['seeing'][0])
+                m5_var[b].append(selc['m5'][0])
             print fieldid,season+1,z
             axa[0].plot(x,y,ls=myls[season%2],color=colors[season])
             
@@ -43,7 +48,11 @@ def Plot_Obs_per_Field(resu):
         labs = [l.get_label() for l in tot_label]
         axa[1].legend(tot_label, labs, ncol=5,loc='best',prop={'size':12},frameon=False)
         
-        axa[2].set_ylabel('Median seeing []',{'fontsize': fontsize}) 
+        axa[2].set_ylabel('Median seeing [\'\']',{'fontsize': fontsize}) 
+
+        print fieldid,'m5 variations'
+        for b in bands:
+            print b,np.max(m5_var[b])-np.min(m5_var[b])
         
         
         for j in range(3):
@@ -94,8 +103,8 @@ def Plot_Cadence_per_Field(resu):
         labs = [l.get_label() for l in tot_label]
         axa[1].legend(tot_label, labs, ncol=5,loc='best',prop={'size':12},frameon=False)
         
-        axa[2].set_ylabel('Duration [days]',{'fontsize': fontsize}) 
-        
+        #axa[2].set_ylabel('Duration [days]',{'fontsize': fontsize}) 
+        axa[2].set_ylabel('Observation Period [day]',{'fontsize': fontsize}) 
         
         for j in range(3):
             axa[j].set_xlabel('band',{'fontsize': fontsize})
@@ -119,6 +128,7 @@ def Plot_per_Field(resu,what=('mean_cadence','rms_cadence'),myleg=('Mean cadence
         for season in range(10):
             idxb = sela['season']==season
             selb=sela[idxb]
+            
             x=[]
             y=[]
             z=[]
@@ -130,26 +140,34 @@ def Plot_per_Field(resu,what=('mean_cadence','rms_cadence'),myleg=('Mean cadence
                 y.append(selc[what[0]][0])
                 z.append(selc[what[1]][0])
                 
-                print fieldid,season,x,y
+            
+            print fieldid,season,what[0],y,what[1],z,np.max(selb[what[0]])-np.min(selb[what[0]])
             axa[0].plot(x,y,ls=myls[season%2],color=colors[season])
             
             ll='Y'+str(season+1)
             tot_label.append(axa[1].errorbar(x,z,ls=myls[season%2],color=colors[season],label=ll))
                 
             
+        idxc = sela['band']=='a'
+        print fieldid,season,sela['duration'][idxc]
         
-
+        ax2 = axa[0].twiny()
+        ax2.plot(sela['season'][idxc]+1,sela['duration'][idxc],ls='-',color='k',marker='s',label='grizy')
+        
         axa[0].set_ylabel(myleg[0],{'fontsize': fontsize})
         axa[1].set_ylabel(myleg[1],{'fontsize': fontsize})
-        
+        ax2.set_xlabel('Year',{'fontsize': fontsize})
+
         labs = [l.get_label() for l in tot_label]
         axa[1].legend(tot_label, labs, ncol=5,loc='best',prop={'size':12},frameon=False)
-        
+        ax2.legend(loc='best',prop={'size':12})
         for j in range(2):
             axa[j].set_xlabel('band',{'fontsize': fontsize})
             axa[j].set_xlim([-0.1,4.1])
             axa[j].set_xticks([i for i in range(len(bands))])
             axa[j].set_xticklabels([corresp_inverted[i] for i in range(len(bands))])
+
+        
         #plt.gcf().savefig('Cadence_Plots/'+fieldname+'_'+str(fieldid)+'.png')
 
 def Plot_Cadence_per_Year(resu):
@@ -197,8 +215,8 @@ def Plot_Cadence_per_Year(resu):
         labs = [l.get_label() for l in tot_label]
         axa[1].legend(tot_label, labs, ncol=5,loc='best',prop={'size':12},frameon=False)
         
-        axa[2].set_ylabel('Duration [days]',{'fontsize': fontsize}) 
-        
+        #axa[2].set_ylabel('Duration [days]',{'fontsize': fontsize}) 
+        axa[2].set_ylabel('Observation period [day]',{'fontsize': fontsize})
         
         for j in range(3):
             axa[j].set_xlabel('band',{'fontsize': fontsize})
@@ -213,8 +231,6 @@ def Plot_Nobs(Nobs):
 
     for season in range(1):
         Plot_Nobs_Indiv(Nobs[Nobs['season']==season],season)
-
-
 
 def Plot_Nobs_Indiv(Nobs,season):
  
@@ -251,19 +267,47 @@ def Plot_Nobs_Indiv(Nobs,season):
             axb[0].legend(loc='upper left',prop={'size':fontsize})
             axb[1].legend(loc='upper left',prop={'size':fontsize})
 
-def Plot_Diffs(diffs,fieldname,fieldid):
+def Plot_Diffs(diffs,fieldname,fieldids,colors):
     
         fontsize=12
-        for key,diff in diffs[fieldid].items():
+        r=[]
+        for fieldid in fieldids:
+            for key,diff in diffs[fieldid].items():
             #print diff.keys()
-            figa, axa = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
-            figa.suptitle(fieldname+' - '+str(fieldid)+' - Year '+str(key+1))
-            for band in 'grizy':
-                ll=band+' band'
-                axa.errorbar([val for val in diff[band][0]],[val for val in diff[band][1]],color=filtercolors[band],label=ll)
-            axa.legend(loc='best')
-            axa.set_ylabel('$\Delta$T [day]',{'fontsize': fontsize})
-            axa.set_xlabel('MJD [day]',{'fontsize': fontsize})
+                figa, axa = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+                figa.suptitle(fieldname+' - '+str(fieldid)+' - Year '+str(key+1))
+                for band in 'grizy':
+                    ll=band+' band'
+                    axa.errorbar([val for val in diff[band][0]],[val for val in diff[band][1]],color=filtercolors[band],marker='o',label=ll)
+                    axa.errorbar([val for val in diff[band][0]],[np.median([val for val in diff[band][1]])]*len(diff[band][0]),color=filtercolors[band],ls='--')
+                    r.append((fieldid,key+1,band,np.median([val for val in diff[band][1]])))
+                axa.legend(loc='best',prop={'size':fontsize})
+                axa.set_ylabel('$\Delta$T = T$_{obs}$-T$_{obs-1}$ [day]',{'fontsize': fontsize})
+                axa.set_xlabel('MJD [day]',{'fontsize': fontsize})
+                plt.gcf().savefig('Obs_Plots/DeltaT_'+fieldname+'_'+str(fieldid)+'_Y'+str(key+1)+'.png')
+                plt.close(figa)
+        med_diffs=np.rec.fromrecords(r,names=['fieldid','season','band','median_diff'])
+
+        myband='z'
+        figb, axb = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+        figb.suptitle(myband+' band')
+        for fieldid in fieldids:
+            idx=(med_diffs['fieldid']==fieldid)&(med_diffs['band']==myband)
+            sela=med_diffs[idx]
+            ll='Field '+str(fieldid)
+            axb.plot(sela['season'],sela['median_diff'],color=colors[fieldid],label=ll)
+        axb.set_xlabel('Year',{'fontsize': fontsize})
+        axb.set_ylabel('Median $\Delta$T [day]',{'fontsize': fontsize})
+        axb.legend(loc='best',prop={'size':fontsize})
+        ylim = axb.get_ylim()
+        axb.set_ylim([ylim[0]-0.1,ylim[1]])
+        xlim = axb.get_xlim()
+        axb.set_xlim([xlim[0]-0.1,xlim[1]+0.1])
+        major_ticks = np.arange(ylim[0],ylim[1], 1)
+        axb.set_yticks(major_ticks)
+        major_ticks = np.arange(xlim[0],xlim[1]+1,1)
+        axb.set_xticks(major_ticks)
+        axb.grid(which='both')
 
 def Plot_median(res,fieldids,fieldcolors):
 
@@ -285,7 +329,8 @@ def Plot_median(res,fieldids,fieldcolors):
         axa[1].plot([vv[0] for vv in ras],[vv[2] for vv in ras],color=fieldcolors[fieldid],label=ll)
 
 
-    axa[0].set_ylabel('Median duration [day] ',{'fontsize': fontsize})
+    #axa[0].set_ylabel('Median duration [day] ',{'fontsize': fontsize})
+    axa[0].set_ylabel('Median observation period [day] ',{'fontsize': fontsize})
     axa[1].set_ylabel('Median expTime [s]',{'fontsize': fontsize})
     axa[0].legend(loc='best',prop={'size':fontsize},frameon=False)
     axa[1].legend(loc='best',prop={'size':fontsize},frameon=False)
@@ -311,7 +356,7 @@ print 'alors',fieldids
 #fieldids=[123]
 #fieldids=[123]
 fieldids=[290,744,1427,2412,2786]
-#fieldids=[744]
+#fieldids=[744,1427]
 #fieldids=[120]
 for fieldid in fieldids:
     name='Observations_'+fieldname+'_'+str(fieldid)+'.txt'
@@ -319,8 +364,8 @@ for fieldid in fieldids:
 
 r=[]
 bands='grizy'
-corresp=dict(zip(bands,[i for i in range(len(bands))]))
-corresp_inverted=dict(zip([i for i in range(len(bands))],bands))
+corresp=dict(zip(bands+'a',[i for i in range(len(bands)+1)]))
+corresp_inverted=dict(zip([i for i in range(len(bands)+1)],bands+'a'))
 
 filtercolors = {'u':'c', 'g':'b', 'r':'g', 'i':'y', 'z':'r', 'y':'m'}
 fieldcolors=dict(zip([290,744,1427,2412,2786],'bgyrm'))
@@ -382,6 +427,15 @@ for key, vals in myobs.items():
             """
                 #print key, np.mean(diff),np.std(diff),np.max(sel['mjd'])-np.min(sel['mjd'])
             r.append((key,iseason,b,np.mean(diff),np.std(diff),np.max(sel['mjd'])-np.min(sel['mjd']),corresp[b],np.median(sel['airmass']),np.median(sel['m5sigmadepth']),np.median(sel['seeing']),np.sum(sel['exptime'])))
+
+        idxc = myseason['band']!='LSSTPG::u'
+        selcb=myseason[idxc]
+            
+        selcb.sort(order='mjd')
+        diff=[io-jo for jo,io in zip(selcb['mjd'][:-1], selcb['mjd'][1:])]
+        r.append((key,iseason,'a',np.mean(diff),np.std(diff),np.max(selcb['mjd'])-np.min(selcb['mjd']),corresp['a'],np.median(selcb['airmass']),np.median(selcb['m5sigmadepth']),np.median(selcb['seeing']),np.sum(selcb['exptime'])))
+
+        
         """
         plt.hist(sel['mjd'],bins=int(np.max(sel['mjd']))-int(np.min(sel['mjd'])))
 
@@ -405,9 +459,9 @@ for fieldid in fieldids:
 
 #Plot_per_Field(resu)
 #Plot_per_Field(resu,what=('duration','obstime'),myleg=('Duration [day]','Observing Time [s]'))
-#Plot_Diffs(all_diff,fieldname,1427)
+Plot_Diffs(all_diff,fieldname,fieldids,fieldcolors)
 #Plot_Obs_per_Field(resu)
 #Plot_Cadence_per_Year(resu)
 #Plot_Nobs(Nobs)
-Plot_median(resu,fieldids,fieldcolors)
+#Plot_median(resu,fieldids,fieldcolors)
 plt.show()

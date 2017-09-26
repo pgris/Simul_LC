@@ -55,4 +55,6 @@ axa.set_xlim([0.5,10.5])
 axa.legend(loc='best',prop={'size':fontsize})
 
 figa.suptitle('Perret rate - 10 years - $\mathrm{N_{SN\/Ia}}$ = '+str(int(ntot_nsn))+' $\pm$ '+str(int(np.sqrt(errtot_nsn)))) 
+
+figa.savefig('Plots_NSN/Summary_'+fieldname+'.png')
 plt.show()

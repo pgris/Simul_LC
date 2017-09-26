@@ -5,7 +5,7 @@ from Fit_LC import *
 import cPickle as pkl
 
 class Generate_Single_LC:
-    def __init__(self,z,T0,X1,Color,obs,telescope,inum,output_q):
+    def __init__(self,z,T0,X1,Color,obs,telescope,inum,min_rf_phase,max_rf_phase,duration,output_q):
         
         params={}
         params['z']=z
@@ -25,13 +25,11 @@ class Generate_Single_LC:
         self.outdict['fit']=None
         self.outdict['mbsim']=-999.
         self.outdict['observations']=None
+        self.duration=duration
 
-        self.mysn=Generate_LC(params,telescope=self.telescope)
-       
-        self.obs=obs
-        self.duration=np.max(obs['mjd'])-np.min(obs['mjd'])
+        self.mysn=Generate_LC(params,telescope=self.telescope)         
 
-        self.bands=[b[-1:] for b in np.unique(self.obs['band'])]
+        
 
         """
         print 'hello',self.bands,self.z
@@ -42,24 +40,30 @@ class Generate_Single_LC:
         """
 
         self.bands_rest = 'grizy'
-        self.Gen_LC()
+ 
+        p=(obs['mjd']-T0)/(1.+z)
+        idx = (p >= min_rf_phase)&(p<=max_rf_phase)
+        self.obs=obs[idx]
         self.dict_quality={}
-        self.Get_Quality_LC()
-        Nmeas=self.dict_quality['all'][0]+self.dict_quality['all'][1]
+
+        if len(self.obs) >=5:
+            self.bands=[b[-1:] for b in np.unique(self.obs['band'])]
+            self.Gen_LC()           
+            self.Get_Quality_LC()
+            Nmeas=self.dict_quality['all'][0]+self.dict_quality['all'][1]
         #print 'there pal',Nmeas
-        if Nmeas >= 5:
+            if Nmeas >= 5:
             #if self.dict_quality['phase'][0]<=-5 and self.dict_quality['phase'][1]>=20:
-            self.outdict['status']='go_fit'
-            self.outdict['fit_status']='unknow'
-            self.Fit_LC()
-                #print 'there pal',self.outdict['fit_status'],inum
-            """
-            else:
-                self.outdict['status']='killed'
+                self.outdict['status']='go_fit'
                 self.outdict['fit_status']='unknow'
-            """
+                self.Fit_LC()
+                #print 'there pal',self.outdict['fit_status'],inum
+           
+            else:
+                self.outdict['status']='no_obs'
+                self.outdict['fit_status']='unknow'
         else:
-           self.outdict['status']='no_obs'
+           self.outdict['status']='no_pha'
            self.outdict['fit_status']='unknow' 
         #out_q.put({irun :(params,self.tot_obs)})
         
@@ -224,22 +228,42 @@ class Generate_Single_LC:
         resu['duration']=self.duration
         #print 'yes',self.duration
         
-        for band in self.bands_rest:
-            resu['N_bef_'+band]=self.dict_quality[band][0]
-            resu['N_aft_'+band]=self.dict_quality[band][1]
+        if bool(self.dict_quality) is True:
+            for band in self.bands_rest:
+                resu['N_bef_'+band]=self.dict_quality[band][0]
+                resu['N_aft_'+band]=self.dict_quality[band][1]
             #print 'resu',band,resu['N_bef_'+band],resu['N_aft_'+band]
-            resu['cad_'+band]=self.dict_quality['cadence_'+band][0]
-            resu['cad_rms_'+band]=self.dict_quality['cadence_'+band][1]
-            resu['m5sigma_'+band]=self.dict_quality['m5sigma_'+band][0]
-            resu['m5sigma_rms_'+band]=self.dict_quality['m5sigma_'+band][1]
+                resu['cad_'+band]=self.dict_quality['cadence_'+band][0]
+                resu['cad_rms_'+band]=self.dict_quality['cadence_'+band][1]
+                resu['m5sigma_'+band]=self.dict_quality['m5sigma_'+band][0]
+                resu['m5sigma_rms_'+band]=self.dict_quality['m5sigma_'+band][1]
 
-        resu['phase_first']=self.dict_quality['phase'][0]
-        resu['phase_last']=self.dict_quality['phase'][1]
-        resu['N_bef']=self.dict_quality['all'][0]
-        resu['N_aft']=self.dict_quality['all'][1]
+            resu['phase_first']=self.dict_quality['phase'][0]
+            resu['phase_last']=self.dict_quality['phase'][1]
+            resu['N_bef']=self.dict_quality['all'][0]
+            resu['N_aft']=self.dict_quality['all'][1]
         #print 'in total',resu['N_bef'],resu['N_aft']
-        resu['cad']=self.dict_quality['cadence_all'][0]
-        resu['cad_rms']=self.dict_quality['cadence_all'][1]
+            resu['cad']=self.dict_quality['cadence_all'][0]
+            resu['cad_rms']=self.dict_quality['cadence_all'][1]
+        else:
+            for band in self.bands_rest:
+                resu['N_bef_'+band]=0
+                resu['N_aft_'+band]=0
+            #print 'resu',band,resu['N_bef_'+band],resu['N_aft_'+band]
+                resu['cad_'+band]=0
+                resu['cad_rms_'+band]=0
+                resu['m5sigma_'+band]=0
+                resu['m5sigma_rms_'+band]=0
+                
+            resu['phase_first']=0
+            resu['phase_last']=0
+            resu['N_bef']=0
+            resu['N_aft']=0
+        #print 'in total',resu['N_bef'],resu['N_aft']
+            resu['cad']=0
+            resu['cad_rms']=0 
+        
+
         resu['status']=self.outdict['status']
         resu['fit_status']=self.outdict['fit_status']
 

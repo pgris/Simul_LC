@@ -25,6 +25,8 @@ parser.add_option("-c", "--color", type="float", default=-0.2, help="filter [%de
 parser.add_option("-t", "--sntype", type="string", default="Ia", help="filter [%default]")
 parser.add_option("-d", "--dirmeas", type="string", default="None", help="filter [%default]")
 parser.add_option("-r", "--T0random", type="string", default="yes", help="filter [%default]")
+parser.add_option("--min_rf_phase", type="float", default=-15.0, help="filter [%default]")
+parser.add_option("--max_rf_phase", type="float", default=30., help="filter [%default]")
 
 #parser.add_option("-r", "--rolling", type="int", default=0, help="filter [%default]")
 #parser.add_option("--nrolling", type="int", default=0, help="filter [%default]")
@@ -43,6 +45,8 @@ zrandom=opts.zrandom
 T0random=opts.T0random
 X1=opts.stretch
 Color=opts.color
+min_rf_phase=opts.min_rf_phase
+max_rf_phase=opts.max_rf_phase
 
 filename='../Ana_Cadence/OpSimLogs/'+opts.dirmeas+'/Observations_'+opts.fieldname+'_'+str(fieldid)+'.txt'
 
@@ -81,7 +85,7 @@ mysel=myseason[iddx]
 min_season=np.min(mysel['mjd'])
 max_season=np.max(mysel['mjd'])
 
-diff=max_season-min_season
+duration=max_season-min_season
 
 n_multi=5
 n_batch=N_sn/n_multi
@@ -99,7 +103,7 @@ for i in range(0,n_batch):
             T0 = np.random.uniform(min_season,max_season)
         else:
             T0=0
-            
+
         if zrandom=='yes':
             z=np.random.uniform(zmin,zmax)
         else:
@@ -114,7 +118,7 @@ for i in range(0,n_batch):
 
         #print 'hello I will process',X1_val,Color_val
         #print 'Processing',j,T0,z
-        p=multiprocessing.Process(name='Subprocess-'+str(i),target=Generate_Single_LC,args=(z,T0,X1_val,Color_val,myseason,telescope,j,result_queue))
+        p=multiprocessing.Process(name='Subprocess-'+str(i),target=Generate_Single_LC,args=(z,T0,X1_val,Color_val,myseason,telescope,j,min_rf_phase,max_rf_phase,duration,result_queue))
     #process.append(p)
         p.start()
     
