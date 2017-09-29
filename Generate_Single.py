@@ -154,6 +154,7 @@ class Generate_Single_LC:
             self.dict_quality[band]=(0,0)
             self.dict_quality['cadence_'+band]=(0.0,0.0)
             self.dict_quality['m5sigma_'+band]=(0.0,0.0)
+            self.dict_quality['SNR_'+band]=0.0
         self.dict_quality['all']=(0,0)
         self.dict_quality['phase']=(0.0,0.0)
         self.dict_quality['cadence_all']=(0.0,0.0)
@@ -179,6 +180,11 @@ class Generate_Single_LC:
                     self.dict_quality['cadence_'+band]=(mean_cadence,rms_cadence)
                     #print obs_sel[idx].dtype
                     self.dict_quality['m5sigma_'+band]=(np.mean(obs_sel[idx]['m5']),np.std(obs_sel[idx]['m5']))
+                    if len(obs_sel[idx])>=1:
+                        self.dict_quality['SNR_'+band]=5.*np.power(np.sum(np.power(obs_sel['flux_e_sec'][idx]/obs_sel['flux_5sigma_e_sec'][idx],2.)),0.5)
+                    else:
+                        self.dict_quality['SNR_'+band]=0.
+                    #print 'hello SNR',5.*np.power(np.sum(np.power(obs_sel['flux_e_sec'][idx]/obs_sel['flux_5sigma_e_sec'][idx],2.)),0.5)
 
                 self.dict_quality['all']=(n_bef_tot,n_aft_tot) 
                 mean_cadence, rms_cadence=self.Get_cadence(obs_sel)
@@ -237,6 +243,7 @@ class Generate_Single_LC:
                 resu['cad_rms_'+band]=self.dict_quality['cadence_'+band][1]
                 resu['m5sigma_'+band]=self.dict_quality['m5sigma_'+band][0]
                 resu['m5sigma_rms_'+band]=self.dict_quality['m5sigma_'+band][1]
+                resu['SNR_'+band]=self.dict_quality['SNR_'+band]
 
             resu['phase_first']=self.dict_quality['phase'][0]
             resu['phase_last']=self.dict_quality['phase'][1]

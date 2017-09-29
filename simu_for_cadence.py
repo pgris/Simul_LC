@@ -87,15 +87,24 @@ max_season=np.max(mysel['mjd'])
 
 duration=max_season-min_season
 
+time_begin=time.time()
+"""
+T0_vals=np.arange(min_season,max_season,0.5)
+z_vals=np.arange(zmin,zmax,0.01)
+"""
+
+
 n_multi=5
 n_batch=N_sn/n_multi
 
-time_begin=time.time()
+#n_batch=len(T0_vals)
+#n_multi=len(z_vals)
 
 for i in range(0,n_batch):
     result_queue = multiprocessing.Queue()
 #process=[]
     #print 'processing main',i
+    #T0=T0_vals[i]
     name_for_output=opts.fieldname+'_'+str(fieldid)+'_'+str(zmin)+'_'+str(zmax)+'_X1_'+str(X1)+'_C_'+str(Color)+'_'+str(i)
     for j in range(0,n_multi):
         
@@ -108,6 +117,10 @@ for i in range(0,n_batch):
             z=np.random.uniform(zmin,zmax)
         else:
             z=zmin
+
+        
+        
+        #z=z_vals[j]
 
         X1_val=X1
         Color_val=Color

@@ -160,3 +160,17 @@ class Telescope(object):
 
         return resu
         
+    def flux_to_mag(self, flux, band, zp=None):
+        if zp is None:
+            zp = self.zero_points(band)
+        m = -2.5 * np.log10(flux) + zp
+        return m
+
+    def mag_to_flux(self, mag, band, zp=None):
+        if zp is None:
+            zp = self.zero_points(band)
+        return np.power(10., -0.4 * (mag-zp))
+
+
+    def zero_points(self, band):
+        return np.asarray([self.zp[b] for b in band])

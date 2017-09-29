@@ -274,28 +274,57 @@ def Plot_Diffs(diffs,fieldname,fieldids,colors):
         for fieldid in fieldids:
             for key,diff in diffs[fieldid].items():
             #print diff.keys()
+                
                 figa, axa = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
                 figa.suptitle(fieldname+' - '+str(fieldid)+' - Year '+str(key+1))
-                for band in 'grizy':
+                
+                #for band in 'grizy':
+                for band in 'z':
                     ll=band+' band'
                     axa.errorbar([val for val in diff[band][0]],[val for val in diff[band][1]],color=filtercolors[band],marker='o',label=ll)
                     axa.errorbar([val for val in diff[band][0]],[np.median([val for val in diff[band][1]])]*len(diff[band][0]),color=filtercolors[band],ls='--')
-                    r.append((fieldid,key+1,band,np.median([val for val in diff[band][1]])))
+                    totag=sorted(diff[band][1])
+                    
+                    median=np.median(totag)
+                    nvals=float(len(totag))
+                    
+                    rank_cl_upper=1.+nvals/2.+1.96*np.sqrt(nvals)/2.
+                    rank_cl_lower=nvals/2.-1.96*np.sqrt(nvals)/2.
+                    #print 'alors',key,band,nvals,rank_cl_upper,rank_cl_lower
+                    median_cl_upper=totag[int(rank_cl_upper)]
+                    median_cl_lower=totag[int(rank_cl_lower)]
+                    
+                    r.append((fieldid,key+1,band,median,median_cl_lower,median_cl_upper))
                 axa.legend(loc='best',prop={'size':fontsize})
                 axa.set_ylabel('$\Delta$T = T$_{obs}$-T$_{obs-1}$ [day]',{'fontsize': fontsize})
                 axa.set_xlabel('MJD [day]',{'fontsize': fontsize})
                 plt.gcf().savefig('Obs_Plots/DeltaT_'+fieldname+'_'+str(fieldid)+'_Y'+str(key+1)+'.png')
                 plt.close(figa)
-        med_diffs=np.rec.fromrecords(r,names=['fieldid','season','band','median_diff'])
+        med_diffs=np.rec.fromrecords(r,names=['fieldid','season','band','median_diff','median_diff_lower','median_diff_upper'])
 
         myband='z'
         figb, axb = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
         figb.suptitle(myband+' band')
+        if len(fieldids) ==1:
+            figb.suptitle('Field '+str(fieldids[0])+' '+myband+' band')
         for fieldid in fieldids:
             idx=(med_diffs['fieldid']==fieldid)&(med_diffs['band']==myband)
             sela=med_diffs[idx]
-            ll='Field '+str(fieldid)
-            axb.plot(sela['season'],sela['median_diff'],color=colors[fieldid],label=ll)
+            print fieldid
+            
+            if len(fieldids) == 1:
+                ll='median'
+                axb.plot(sela['season'],sela['median_diff'],color=colors[fieldid],label=ll)
+                ll='95% CL (lower)'
+                axb.plot(sela['season'],sela['median_diff_lower'],color=colors[fieldid],ls='--',label=ll)
+                ll='95% CL (upper)'
+                axb.plot(sela['season'],sela['median_diff_upper'],color=colors[fieldid],ls=':',label=ll)
+            else:
+                ll='Field '+str(fieldid)
+                axb.plot(sela['season'],sela['median_diff'],color=colors[fieldid],label=ll)
+            for season in range(1,11):
+                selb=sela[np.where(sela['season']==season)]
+                print season,selb['median_diff'][0],selb['median_diff_lower'][0],selb['median_diff_upper'][0]
         axb.set_xlabel('Year',{'fontsize': fontsize})
         axb.set_ylabel('Median $\Delta$T [day]',{'fontsize': fontsize})
         axb.legend(loc='best',prop={'size':fontsize})
@@ -308,6 +337,47 @@ def Plot_Diffs(diffs,fieldname,fieldids,colors):
         major_ticks = np.arange(xlim[0],xlim[1]+1,1)
         axb.set_xticks(major_ticks)
         axb.grid(which='both')
+
+        figc, axc = plt.subplots(ncols=1, nrows=2, figsize=(10,9))
+        figc.suptitle(myband+' band')
+        tot_label=[]
+        
+        for fieldid in fieldids:
+            idx=(med_diffs['fieldid']==fieldid)&(med_diffs['band']==myband)
+            sela=med_diffs[idx]
+           
+            ll='Field '+str(fieldid)
+            tot_label.append(axc[0].errorbar(sela['season'],sela['median_diff']-sela['median_diff_lower'],color=colors[fieldid],label=ll))
+            axc[1].plot(sela['season'],sela['median_diff_upper']-sela['median_diff'],color=colors[fieldid],label=ll)
+
+        axc[0].set_xlabel('Year',{'fontsize': fontsize})
+        axc[0].set_ylabel('Median $\Delta$T - Lower (95% C.L.) $\Delta$T [day]',{'fontsize': fontsize})
+        axc[0].legend(loc='best',prop={'size':fontsize})
+        ylim = axc[0].get_ylim()
+        axc[0].set_ylim([ylim[0]-0.5,ylim[1]])
+        xlim = axc[0].get_xlim()
+        axc[0].set_xlim([xlim[0]-0.1,xlim[1]+0.1])
+        major_ticks = np.arange(ylim[0],ylim[1], 1)
+        axc[0].set_yticks(major_ticks)
+        major_ticks = np.arange(xlim[0],xlim[1]+1,1)
+        axc[0].set_xticks(major_ticks)
+        axc[0].grid(which='both') 
+        labs = [l.get_label() for l in tot_label]
+        axc[0].legend(tot_label, labs, ncol=5,loc='best',prop={'size':10},frameon=False)
+
+        axc[1].set_xlabel('Year',{'fontsize': fontsize})
+        axc[1].set_ylabel(' Upper (95% C.L.) $\Delta$T - Median $\Delta$T [day]',{'fontsize': fontsize})
+        axc[1].legend(loc='best',prop={'size':fontsize})
+        ylim = axc[1].get_ylim()
+        axc[1].set_ylim([ylim[0]-0.5,ylim[1]])
+        xlim = axc[1].get_xlim()
+        axc[1].set_xlim([xlim[0]-0.1,xlim[1]+0.1])
+        major_ticks = np.arange(ylim[0],ylim[1], 1)
+        axc[1].set_yticks(major_ticks)
+        major_ticks = np.arange(xlim[0],xlim[1]+1,1)
+        axc[1].set_xticks(major_ticks)
+        axc[1].grid(which='both')
+        axc[1].legend(tot_label, labs, ncol=5,loc='best',prop={'size':10},frameon=False)
 
 def Plot_median(res,fieldids,fieldcolors):
 
@@ -357,7 +427,8 @@ print 'alors',fieldids
 #fieldids=[123]
 fieldids=[290,744,1427,2412,2786]
 #fieldids=[744,1427]
-#fieldids=[120]
+#fieldids=[2786]
+
 for fieldid in fieldids:
     name='Observations_'+fieldname+'_'+str(fieldid)+'.txt'
     myobs[fieldid]=Observations(fieldid=fieldid, filename=thedir+'/'+name)

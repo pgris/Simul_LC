@@ -8,6 +8,7 @@ color=$5
 zmin=$6
 zmax=$7
 zstep=$8
+
 for season in {0..9}
 do
    #echo "Welcome $season times"

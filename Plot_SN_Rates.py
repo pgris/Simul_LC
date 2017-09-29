@@ -1,21 +1,26 @@
 from SN_Rate import *
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
+import numpy as np
 
-rate=SN_Rate(survey_area=10.)
+survey_area= 9.6
+duration = 0.5
 
-zz,rate_one,err_rate,nsn,err_nsn=rate(0.1,1.,0.01)
+rate=SN_Rate(survey_area=survey_area,duration=duration)
 
-rateb=SN_Rate(rate='Perret',survey_area=10.)
-zzb,rate_two,err_rateb,nsnb,err_nsnb=rateb(0.1,1.,0.01,account_for_edges=True)
+zz,rate_one,err_rate,nsn,err_nsn=rate(0.,1.05,0.05)
+
+rateb=SN_Rate(rate='Perrett',survey_area=survey_area,duration=duration)
+zzb,rate_two,err_rateb,nsnb,err_nsnb=rateb(0.,1.05,0.05)
 
 print zz, nsn,nsnb
 
 figbb, axbb = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
-axbb.errorbar(zz,1.e4*rate_one,yerr=1.e4*err_rate,marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='blue',label='Ripoche rate (20% uncert.)')
-axbb.errorbar(zzb,1.e4*rate_two,yerr=1.e4*err_rateb,marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='red',label='Perret rate')
+#axbb.errorbar(zz,1.e4*rate_one,yerr=1.e4*err_rate,marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='blue',label='Ripoche rate (20% uncert.)')
+axbb.errorbar(zzb,1.e4*rate_two,yerr=1.e4*err_rateb,marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='red',label='Perrett rate')
+
 axbb.set_yscale('log')
-axbb.set_xlabel('Redshift')
+axbb.set_xlabel('z')
 axbb.set_ylabel('10$^{-4}$ SNe Ia yr$^{-1}$ Mpc$^{-3}$ h$^{3}$$_{70}$')
 axbb.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
 axbb.set_ylim(top=1.1)
@@ -26,16 +31,34 @@ tot_sn=np.sum(nsn)
 err_tot_sn=np.power(np.sum(np.power(err_nsn,2.)),0.5)
 tot_snb=np.sum(nsnb)
 err_tot_snb=np.power(np.sum(np.power(err_nsnb,2.)),0.5)
+
 figc, axc = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
 ll='N$_{SN Ia}$ = '+str(int(tot_sn))+'$\pm$'+str(int(err_tot_sn))
-axc.errorbar(zz,nsn,yerr=err_nsn,marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='blue',label='Ripoche rate - '+ll)
+figc.suptitle('Survey area: '+str(survey_area)+' deg$^{2}$ - Duration: '+str(duration)+' year')
+#axc.errorbar(zz,nsn,yerr=err_nsn,marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='blue',label='Ripoche rate - '+ll)
 ll='N$_{SN Ia}$ = '+str(int(tot_snb))+'$\pm$'+str(int(err_tot_snb))
-axc.errorbar(zzb,nsnb,yerr=err_nsnb,marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='red',label='Perret rate - '+ll)
+axc.errorbar(zzb,nsnb,yerr=err_nsnb,marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='red',label='Perrett rate - '+ll)
 #axc.set_yscale('log')
-axc.set_xlabel('Redshift')
-axc.set_ylabel('N(SNe Ia) - one year (survey aera=9.6 deg$^2$, effective search duration=0.5)')
+axc.set_xlabel('z')
+axc.set_ylabel('N(SNe Ia) / z bin')
 #axc.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
-plt.legend(loc='best')
+axc.set_xlim([0.,1.])
+axc.legend(loc='best',prop={'size':12})
+
+figd, axd = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+figd.suptitle('Survey area: '+str(survey_area)+' deg$^{2}$ - Duration: '+str(duration)+' year')
+ll='N$_{SN Ia}$ = '+str(int(tot_sn))+'$\pm$'+str(int(err_tot_sn))
+#axd.errorbar(zz,nsn,yerr=err_nsn,marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='blue',label='Ripoche rate - '+ll)
+ll='N$_{SN Ia}$ = '+str(int(tot_snb))+'$\pm$'+str(int(err_tot_snb))
+axd.errorbar(zzb,np.cumsum(nsnb),yerr=err_nsnb,marker='.', mfc='black', mec='black', ms=8, linestyle='-',color='red',label='Perrett rate - '+ll)
+#axd.set_yscale('log')
+axd.set_xlabel('z')
+axd.set_ylabel('N(SNe Ia) < z')
+axd.set_xlim([0.,1.])
+axd.legend(loc='best',prop={'size':12})
+
+
+
 
 
 

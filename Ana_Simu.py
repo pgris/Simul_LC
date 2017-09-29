@@ -11,38 +11,7 @@ import collections
 from optparse import OptionParser
 from astropy.table import vstack,Table
 from Observations import *
-
-class Id:
-    def __init__(self,thedir,fieldname,fieldid,X1,Color,season,colorfig):
-        self.thedir=thedir
-        self.fieldname=fieldname
-        self.fieldid=fieldid
-        self.X1=X1
-        self.Color=Color
-        self.season=season
-        self.colorfig=colorfig
-
-    @property
-    def thedir(self):
-        return self.thedir
-    @property
-    def fieldname(self):
-        return self.fieldname
-    @property
-    def fieldid(self):
-        return self.fieldid
-    @property
-    def X1(self):
-        return self.X1
-    @property
-    def Color(self):
-        return self.Color
-    @property
-    def season(self):
-        return self.season
-    @property
-    def colorfig(self):
-        return self.colorfig
+from ID import *
 
 class Ana_Simu:
     def __init__(self, dict_ana,zmin=0.,zmax=1.2,bin_z=0.01):
@@ -54,20 +23,27 @@ class Ana_Simu:
         self.zmin=zmin
         self.zmax=zmax
         self.bin_z=bin_z
-        dir_observations='../Ana_Cadence/OpSimLogs/'
+        dir_observations_OpSim='../Ana_Cadence/OpSimLogs/'
         dict_obs={}
+        myobs={}
+
         for key,val in dict_ana.items():
             #key=vals[0]
             #val=vals[1]
             print 'hee',val.thedir
             dirmeas=thedir+'/'+val.thedir+'/'+str(val.fieldid)+'/Season_'+str(val.season)
             sum_file=dirmeas+'/'+val.fieldname+'_'+str(val.fieldid)+'_X1_'+str(val.X1)+'_C_'+str(val.Color)+'_all.pkl'
+            if not myobs.has_key(val.fieldname):
+                myobs[val.fieldname]={}
+                if not myobs[val.fieldname].has_key(val.fieldid):
+                   name=val.thedir+'/Observations_'+val.fieldname+'_'+str(val.fieldid)+'.txt'
+                   myobs[val.fieldname][val.fieldid]=Observations(fieldid=val.fieldid, filename=dir_observations_OpSim+'/'+name) 
+                   print 'loading observations',name,key,val.season
 
-            
             if not dict_obs.has_key(key):
-                name=val.thedir+'/Observations_'+val.fieldname+'_'+str(val.fieldid)+'.txt'
-                myobs=Observations(fieldid=val.fieldid, filename=dir_observations+'/'+name)
-                dict_obs[key]=myobs.seasons[val.season]
+                dict_obs[key]={}
+           
+            dict_obs[key][val.season]=myobs[val.fieldname][val.fieldid].seasons[val.season]
             
 
             if os.path.exists(sum_file):
@@ -76,7 +52,7 @@ class Ana_Simu:
                 #print 'done',key,tot_resu[key],tot_resu[key].dtype,sum_file
                 #idx = loaded_file['z']>=self.zmin and loaded_file['z']<self.zmax
                 tot_resu[key]=loaded_file
-                print 'done',key,sum_file,tot_resu[key].dtype
+                #print 'done',key,sum_file,tot_resu[key].dtype
             else:
 
                 files = glob.glob(dirmeas+'/'+val.fieldname+'_'+str(val.fieldid)+'*_X1_'+str(val.X1)+'_C_'+str(val.Color)+'*.pkl')
@@ -104,11 +80,11 @@ class Ana_Simu:
 
         # this is for simulated parameters
 
-        """
+        
         figb, axb = plt.subplots(ncols=2, nrows=2, figsize=(10,9))
         for key in dict_ana.keys():
             self.Plot_Sims(axb,tot_resu[key])
-        """
+        
 
         self.nsn_tot=0.
         self.err_tot=0.
@@ -129,7 +105,7 @@ class Ana_Simu:
 
         #figbb, axbb = plt.subplots(ncols=2, nrows=2, figsize=(10,9))
         col=['k','r','b']
-        idraw=dict(zip([0,1,2,3],[0,0,0,0]))
+        idraw=dict(zip([0,1,2,3,4],[0,0,0,0,0]))
         tot_resu_o=collections.OrderedDict(sorted(tot_resu.items()))
         
         for key, val in tot_resu_o.items():
@@ -142,7 +118,7 @@ class Ana_Simu:
             
             #idx=val['status']=='go_fit'
             #print np.unique(val[idx]['fit_status'])
-            for keyb in idraw.keys():
+            for keyb in range(4):
                 idraw[keyb]+=1
 
             sel=val.copy()
@@ -167,7 +143,7 @@ class Ana_Simu:
             #sel=sel[np.where(sel['status']=='go_fit')]
             sel=sel[np.where(np.logical_and(sel['status']=='go_fit',sel['fit_status']=='fit_ok'))]
             sel=sel[np.where(np.logical_and(sel['phase_first']<=-5,sel['phase_last']>=20))]
-            #sel=sel[np.where(sel['phase_last']>=20)]
+            #sel=sel[np.where(sel['phase_first']<=-5.)]
             #sel=sel[np.where(np.sqrt(sel['salt2.CovColorColor'])<0.04)]
 
             selb=selb[np.where(selb['status']=='no_obs')]
@@ -193,19 +169,46 @@ class Ana_Simu:
             #Efficiency per season vs z plot
             
             self.Plot_Eff(axa,val,sel,'z',dict_ana[key].colorfig,dict_ana[key].season,key,0,idraw[0],self.zmin,self.zmax,self.bin_z)
-            self.Plot_Eff(axca,val,selb,'z',dict_ana[key].colorfig,dict_ana[key].season,key,1,idraw[1],self.zmin,self.zmax,self.bin_z)
-            self.Plot_Eff(axca,val,selc,'z',dict_ana[key].colorfig,dict_ana[key].season,key,2,idraw[1],self.zmin,self.zmax,self.bin_z)
-            self.Plot_Eff(axca,val,seld,'z',dict_ana[key].colorfig,dict_ana[key].season,key,3,idraw[1],self.zmin,self.zmax,self.bin_z)
+            #self.Plot_Eff(axca,val,selb,'z',dict_ana[key].colorfig,dict_ana[key].season,key,1,idraw[1],self.zmin,self.zmax,self.bin_z)
+            #self.Plot_Eff(axca,val,selc,'z',dict_ana[key].colorfig,dict_ana[key].season,key,2,idraw[2],self.zmin,self.zmax,self.bin_z)
+            #self.Plot_Eff(axca,val,seld,'z',dict_ana[key].colorfig,dict_ana[key].season,key,3,idraw[3],self.zmin,self.zmax,self.bin_z)
             
             #Efficiency per season vs T0 plot
+            if dict_ana[key].season ==0:
+                idraw[4]+=1
+                min_T0=np.min(val['T0'])
+                max_T0=np.max(val['T0'])
+                bin_T0=5.
+                min_z=0.
+                max_z=0.1
+                sel_val=self.Select('z',val,min_z,max_z)
+                sel_sel=self.Select('z',sel,min_z,max_z)
+                sel_selb=self.Select('z',selb,min_z,max_z)
+                sel_selc=self.Select('z',selc,min_z,max_z)
+                sel_seld=self.Select('z',seld,min_z,max_z)
+                """
+                mmin_T0=61640
+                mmax_T0=61650
 
-            min_T0=np.min(val['T0'])
-            max_T0=np.max(val['T0'])
-            bin_T0=2.
-            self.Plot_Eff(axaa,self.Select('z',val,0.,0.05),self.Select('z',sel,0.,0.05),'T0',dict_ana[key].colorfig,dict_ana[key].season,key,0,idraw[0],min_T0,max_T0,bin_T0,dict_obs[key])
-            self.Plot_Eff(axcaa,self.Select('z',val,0.,0.05),self.Select('z',selb,0.,0.05),'T0',dict_ana[key].colorfig,dict_ana[key].season,key,1,idraw[1],min_T0,max_T0,bin_T0)
-            self.Plot_Eff(axcaa,self.Select('z',val,0.,0.05),self.Select('z',selc,0.,0.05),'T0',dict_ana[key].colorfig,dict_ana[key].season,key,2,idraw[1],min_T0,max_T0,bin_T0)
-            self.Plot_Eff(axcaa,self.Select('z',val,0.,0.05),self.Select('z',seld,0.,0.05),'T0',dict_ana[key].colorfig,dict_ana[key].season,key,3,idraw[1],min_T0,max_T0,bin_T0)
+                sel_val=self.Select('T0',sel_val,mmin_T0,mmax_T0)
+                sel_sel=self.Select('T0',sel_sel,mmin_T0,mmax_T0)
+                sel_selb=self.Select('T0',sel_selb,mmin_T0,mmax_T0)
+                sel_selc=self.Select('T0',sel_selc,mmin_T0,mmax_T0)
+                sel_seld=self.Select('T0',sel_seld,mmin_T0,mmax_T0)
+                
+                test=self.Select('T0',sel_val,mmin_T0,mmax_T0)
+                testb=self.Select('phase_first',test,-5.,1000.)
+                #testb=self.Select('phase_last',test,-999,20.)
+                testb=testb[np.where(testb['status']=='go_fit')]
+                print len(test),len(testb),testb['phase_first'],testb['T0'],testb['X1'],testb['Color'],testb['z'],testb['phase_last'],test['phase_last']
+                """
+
+            
+                self.Plot_Eff(axaa,sel_val,sel_sel,'T0',dict_ana[key].colorfig,dict_ana[key].season,key,4,idraw[4],min_T0,max_T0,bin_T0,dict_obs[key][dict_ana[key].season])
+                self.Plot_Eff(axcaa,sel_val,sel_selb,'T0',dict_ana[key].colorfig,dict_ana[key].season,key,5,idraw[1],min_T0,max_T0,bin_T0)
+                #self.Plot_Eff(axcaa,sel_val,sel_selb,'T0',dict_ana[key].colorfig,dict_ana[key].season,key,1,idraw[1],min_T0,max_T0,bin_T0)
+                #self.Plot_Eff(axcaa,sel_val,sel_selc,'T0',dict_ana[key].colorfig,dict_ana[key].season,key,2,idraw[2],min_T0,max_T0,bin_T0)
+                #self.Plot_Eff(axcaa,sel_val,sel_seld,'T0',dict_ana[key].colorfig,dict_ana[key].season,key,3,idraw[3],min_T0,max_T0,bin_T0)
 
 
             # number of supernovae per season
@@ -221,12 +224,16 @@ class Ana_Simu:
 
         #print val['T0']
         print 'in total :',self.nsn_tot,'+-',np.power(self.err_tot,0.5)
+        
         axa.set_title(title)
+        axa.set_xlabel('z')
         axa.set_ylim([0.,1.05])
         axca.set_ylim([0.,1.05])
+        
         axaa.set_title(title)
+        axaa.set_xlabel('DayMax [day]')
         axaa.set_ylim([0.,1.05])
-        axcaa.set_ylim([0.,1.05])
+        #axcaa.set_ylim([0.,1.05])
 
         #axa.set_xlim(self.zmin,self.zmax+0.01)
         nsntot_str=str(int(self.nsn_tot))+'$\pm$'+str(int(np.power(self.err_tot,0.5)))
@@ -234,16 +241,17 @@ class Ana_Simu:
         title+=' - N$_{SN Ia}$ = '+nsntot_str +' / '+nsntheo_str
         axc.set_title(title)
 
-        
-        rate_nsn=np.rec.fromrecords(self.res_nsn,names=['fieldname','fieldid','season','n_sn_detected','err_detected','n_sn_expected','err_expected'])
-        fieldname=rate_nsn['fieldname'][0]
-        fieldid=rate_nsn['fieldid'][0]
-        figc.savefig('Plots_NSN/NSN_'+fieldname+'_'+str(fieldid)+'.png')
-        figa.savefig('Plots_NSN/Eff_'+fieldname+'_'+str(fieldid)+'.png')
-        pkl_out=open('N_SN_'+fieldname+'_'+str(fieldid)+'.pkl','wb')
-        pkl.dump(rate_nsn,pkl_out)
-        pkl_out.close()
-
+        if len(self.res_nsn) > 0:
+            rate_nsn=np.rec.fromrecords(self.res_nsn,names=['fieldname','fieldid','season','n_sn_detected','err_detected','n_sn_expected','err_expected'])
+            fieldname=rate_nsn['fieldname'][0]
+            fieldid=rate_nsn['fieldid'][0]
+            figc.savefig('Plots_NSN/NSN_'+fieldname+'_'+str(fieldid)+'.png')
+            figa.savefig('Plots_NSN/Eff_'+fieldname+'_'+str(fieldid)+'.png')
+            """
+            pkl_out=open('N_SN_'+fieldname+'_'+str(fieldid)+'_colorcut.pkl','wb')
+            pkl.dump(rate_nsn,pkl_out)
+            pkl_out.close()
+            """
         #axc.set_xlim(self.zmin,self.zmax+0.01)
 
         #self.Plot_m5(tot_resu)
@@ -314,19 +322,25 @@ class Ana_Simu:
         #tot_label.append(axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=marker, mfc=colors[key], mec=colors[key], ms=8, linestyle=myfmt[i],color='k',label=ll))
         ll='Y'+str(season+1)
         
-        axc.set_xlabel(varname)
-        if idraw == 0:
-            axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season], mfc=self.color[season], mec=self.color[season], ms=8, linestyle='-',color=color,label=ll)
+        
+        if idraw == 0 or idraw==4:
+            if icount <=10:
+                axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season], mfc=self.color[season], mec=self.color[season], ms=8, linestyle='-',color=color,label=ll)
+            else:
+                axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season], mfc=self.color[season], mec=self.color[season], ms=8, linestyle='-',color=color) 
             #axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season], mfc=color, mec=color, ms=8, linestyle='-',color=color,label=ll)
-            axc.legend(loc='center right',prop={'size':fontsize})
+            if idraw == 0:
+                axc.legend(loc='center right',prop={'size':fontsize})
+                #axc.legend(loc='center left',prop={'size':fontsize})
             if icount == 1:
                 axc.set_ylabel('Efficiency')
-                axc.set_xlim(self.zmin,np.max(bin_center)+0.01)
-                if obs is not None:
-                    print 'yyyyyyyyy',obs
-                    idx=obs['band']!= 'LSSTPG::u'
-                    axc.plot(obs['mjd'][idx],[0.5]*len(obs['mjd'][idx]),'ro')
-
+            if obs is not None:
+                   #print 'yyyyyyyyy',np.min(obs['mjd']),np.max(obs['mjd'])
+                   idx=obs['band']!= 'LSSTPG::u'
+                   print 'season obs ',season
+                   axc.plot(obs['mjd'][idx],[0.5]*len(obs['mjd'][idx]),'b*')
+            if idraw == 0:
+                axc.set_xlim([min_bin,max_bin])
         else:
             if idraw == 1:
                 myls='--'
@@ -345,8 +359,15 @@ class Ana_Simu:
                     axc.plot([min_bin],[0.],linestyle=myls,color='k',label=ll)
 
             axc.legend(loc='best',prop={'size':fontsize},frameon=False)
-            axc.set_xlim([min_bin,max_bin])
-            axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season],  mfc=self.color[season], mec=self.color[season], ms=8, linestyle=myls,color='k')
+            #axc.legend(bbox_to_anchor=(0.5,0.42), loc=2, borderaxespad=0.,prop={'size':fontsize},frameon=False)
+            if idraw <=3:
+                axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season],  mfc=self.color[season], mec=self.color[season], ms=8, linestyle=myls,color='k')
+            else:
+                #print 'aloo',sela.dtype
+                sela.sort(order='T0') 
+                curve = interpolate.interp1d(sela['T0'],sela['SNR_i'])
+                print curve(bin_center)
+                axc.errorbar(bin_center,curve(bin_center),color='k')
             #axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season],  mfc=color, mec=color, ms=8, linestyle=myls,color='k',label=ll)
             axc.set_ylabel('Fraction of Events') 
             
@@ -362,8 +383,8 @@ class Ana_Simu:
 
         effi = interpolate.interp1d(bin_center,ratio)
 
-        rate_name='Perret'
-        sn_rate=SN_Rate(rate=rate_name,duration=selb['duration'][0]/365.25)
+        rate_name='Perrett'
+        sn_rate=SN_Rate(rate=rate_name,duration=(selb['duration'][0]+0.)/365.25)
 
         #zz,rate,err_rate,nsn,err_nsn=sn_rate(self.zmin,self.zmax,self.bin_z)
         zz,rate,err_rate,nsn,err_nsn=sn_rate(bins=bin_center)
@@ -406,7 +427,10 @@ class Ana_Simu:
             axb.errorbar(zz,np.cumsum(combi),marker=self.ms[season], mfc=self.color[season], mec=self.color[season], ms=8, linestyle='-',color=color,label=ll)
         #axc[1].set_yscale('log')
         axb.set_xlabel('z')
-        axb.set_ylabel('Number of SN Ia')
+        if cumul:
+            axb.set_ylabel('Number of SN Ia < z')
+        else:
+           axb.set_ylabel('Number of SN Ia per z bin') 
         axb.legend(loc='best',prop={'size':12})
         axb.set_xlim(self.zmin,np.max(bin_center)+0.01)
         
@@ -750,9 +774,14 @@ filtercolors = dict(zip([123,127,131,135,139,143,147,151],['b','c','g','y','r','
 filtercolors = dict(zip(range(10),['b','c','g','y','r','m','k','#ffa400','#fe871c','#1e4033']))
 #for seas in [1]:
 #for seas in [i for i in range(10)]:
-for seas in [4]:
+for seas in [0]:
     #dict_ana['DD_'+str(fieldid)+'_'+str(seas+1)]=Id(thedir=thedir+'_last',fieldname=fieldname,fieldid=fieldid,X1=X1,Color=Color,season=seas,colorfig='k')
     dict_ana['DD_'+str(fieldid)+'_'+str(seas+1)]=Id(thedir=thedir,fieldname=fieldname,fieldid=fieldid,X1=X1,Color=Color,season=seas,colorfig='k')
+    
+    #dict_ana['DD1_'+str(fieldid)+'_'+str(seas)]=Id(thedir=thedir,fieldname=fieldname,fieldid=fieldid,X1=0.0,Color=0.0,season=seas,colorfig='k')
+    #dict_ana['DD2_'+str(fieldid)+'_'+str(seas)]=Id(thedir=thedir,fieldname=fieldname,fieldid=fieldid,X1=2.0,Color=-0.2,season=seas,colorfig='k')
+    #dict_ana['DD3_'+str(fieldid)+'_'+str(seas)]=Id(thedir=thedir,fieldname=fieldname,fieldid=fieldid,X1=-2.0,Color=0.2,season=seas,colorfig='k')
+    
     #dict_ana['Rolling_Faint_Seas'+str(seas+1)]=Id(thedir='WFD_Rolling_noTwilight',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=seas,colorfig='k')
     """
     for pseason in range(10):
@@ -777,4 +806,4 @@ for seas in [4]:
 #dict_ana['Mean_Obs_Faint_newrefs']=Id(thedir='Mean_Obs_newrefs',fieldname='WFD',fieldid=309,X1=-2.0,Color=0.2,season=0,colorfig='k')
 
 #dict_ana_ordered=collections.OrderedDict(sorted(dict_ana.items()))
-Ana_Simu(dict_ana,zmin=0.,zmax=1.1,bin_z=0.05)
+Ana_Simu(dict_ana,zmin=0.,zmax=1.,bin_z=0.05)

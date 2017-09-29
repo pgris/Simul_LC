@@ -60,8 +60,8 @@ class SN_Rate:
         rate_sn=rate * np.power((1+my_z)/1.5, expn)
         return rate_sn,0.2*rate_sn
 
-    def perret_rate(self, z):
-        """The SNLS SNIa rate according to (Perret et al, 201?)
+    def perrett_rate(self, z):
+        """The SNLS SNIa rate according to (Perrett et al, 201?)
         """
         rate = 0.17E-4
         expn = 2.11
@@ -78,8 +78,8 @@ class SN_Rate:
     def sn_rate(self,z):
         if self.rate == 'Ripoche':
             return self.ripoche_rate(z)
-        if self.rate == 'Perret':
-            return self.perret_rate(z)
+        if self.rate == 'Perrett':
+            return self.perrett_rate(z)
 
 
 
