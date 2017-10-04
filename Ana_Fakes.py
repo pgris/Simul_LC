@@ -2,6 +2,16 @@ import numpy as np
 from Observations import *
 import pylab as plt
 
+def median(sel,var):
+
+    selb=np.sort(sel,order=var)
+    selb=selb[var]
+    num=len(selb)
+    n_lower=num/2-1.96*np.sqrt(float(num))/2.
+    n_upper=1+num/2+1.96*np.sqrt(float(num))/2.
+
+    return np.median(selb),selb[int(n_lower)],selb[int(n_upper)]
+
 def Plot_Obs_per_Field(resu):
     fontsize=12.
     
@@ -298,8 +308,9 @@ def Plot_Diffs(diffs,fieldname,fieldids,colors):
                 axa.legend(loc='best',prop={'size':fontsize})
                 axa.set_ylabel('$\Delta$T = T$_{obs}$-T$_{obs-1}$ [day]',{'fontsize': fontsize})
                 axa.set_xlabel('MJD [day]',{'fontsize': fontsize})
-                plt.gcf().savefig('Obs_Plots/DeltaT_'+fieldname+'_'+str(fieldid)+'_Y'+str(key+1)+'.png')
-                plt.close(figa)
+                
+                #plt.gcf().savefig('Obs_Plots/DeltaT_'+fieldname+'_'+str(fieldid)+'_Y'+str(key+1)+'.png')
+                #plt.close(figa)
         med_diffs=np.rec.fromrecords(r,names=['fieldid','season','band','median_diff','median_diff_lower','median_diff_upper'])
 
         myband='z'
@@ -379,6 +390,52 @@ def Plot_Diffs(diffs,fieldname,fieldids,colors):
         axc[1].grid(which='both')
         axc[1].legend(tot_label, labs, ncol=5,loc='best',prop={'size':10},frameon=False)
 
+def Plot_median_m5(res,fieldname,fieldids,filtercolors):
+
+    lleg=['Median m$_5$ - Lower (95% C.L.) m$_5$ [mag]','Upper (95% C.L.) m$_5$-median m$_5$ [mag]']
+    fontsize=12
+
+    for fieldid in fieldids:
+        idx = res['fieldid']==fieldid
+        sela=res[idx]
+        ras=[]
+        figa, axa = plt.subplots(ncols=1, nrows=1, figsize=(10,9))
+        figa.suptitle(fieldname+' - '+str(fieldid))
+        figb, axb = plt.subplots(ncols=1, nrows=2, figsize=(10,9))
+        figb.suptitle(fieldname+' - '+str(fieldid))
+        tot_label=[]
+        tot_labelb=[]
+        for band in 'grizy':
+            idxb = sela['band']==band
+            selb=sela[idxb]
+            median_m5=np.median(selb['m5'])
+            tot_label.append(axa.errorbar(selb['season']+1,selb['m5']-median_m5,color=filtercolors[band],label=band+' band'))
+            tot_labelb.append(axb[0].errorbar(selb['season']+1,selb['m5']-selb['m5_lower'],color=filtercolors[band],label=band+' band'))
+            axb[1].errorbar(selb['season']+1,selb['m5_upper']-selb['m5'],color=filtercolors[band],label=band+' band')
+
+        axa.set_xlim([0.8,10.2])
+        axa.set_xlabel('Year',{'fontsize': fontsize})
+        axa.set_ylabel('m$_{5}$$^{median}$(Year)-m$_{5}$$^{median}$ [mag]',{'fontsize': fontsize})
+        labs = [l.get_label() for l in tot_label]
+        axa.legend(tot_label, labs, ncol=5,loc='best',prop={'size':12},frameon=False)
+        axa.set_xticks([i for i in range(1,11,1)])
+        """
+        plt.gcf().savefig('Obs_Plots/m5_med_year_'+fieldname+'_'+str(fieldid)+'.png')
+        plt.close(figa)
+        """
+        
+        for i in range(2):
+            axb[i].set_xlim([0.8,10.2])
+            axb[i].set_xlabel('Year',{'fontsize': fontsize})
+            axb[i].set_ylabel(lleg[i],{'fontsize': fontsize})
+            labs = [l.get_label() for l in tot_labelb]
+            axb[i].legend(tot_labelb, labs, ncol=5,loc='best',prop={'size':12},frameon=False)
+            axb[i].set_xticks([i for i in range(1,11,1)])
+
+        plt.gcf().savefig('Obs_Plots/m5_upper_lower_year_'+fieldname+'_'+str(fieldid)+'.png')
+        #plt.close(figa)
+        
+
 def Plot_median(res,fieldids,fieldcolors):
 
     figa, axa = plt.subplots(ncols=1, nrows=2, figsize=(10,9))
@@ -388,6 +445,8 @@ def Plot_median(res,fieldids,fieldcolors):
         idx = res['fieldid']==fieldid
         sela=res[idx]
         ras=[]
+        
+        
         for band in 'grizy':
             idxb = sela['band']==band
             selb=sela[idxb]
@@ -424,7 +483,7 @@ fieldids=[128,129,130,131]
 fieldids=[field+4 for field in fieldids]
 print 'alors',fieldids
 #fieldids=[123]
-#fieldids=[123]
+#fieldids=[290]
 fieldids=[290,744,1427,2412,2786]
 #fieldids=[744,1427]
 #fieldids=[2786]
@@ -497,14 +556,16 @@ for key, vals in myobs.items():
             plt.show()
             """
                 #print key, np.mean(diff),np.std(diff),np.max(sel['mjd'])-np.min(sel['mjd'])
-            r.append((key,iseason,b,np.mean(diff),np.std(diff),np.max(sel['mjd'])-np.min(sel['mjd']),corresp[b],np.median(sel['airmass']),np.median(sel['m5sigmadepth']),np.median(sel['seeing']),np.sum(sel['exptime'])))
+            m5_med,m5_lower,m5_upper=median(sel,'m5sigmadepth')
+            r.append((key,iseason,b,np.mean(diff),np.std(diff),np.max(sel['mjd'])-np.min(sel['mjd']),corresp[b],np.median(sel['airmass']),m5_med,m5_lower,m5_upper,np.median(sel['seeing']),np.sum(sel['exptime'])))
 
         idxc = myseason['band']!='LSSTPG::u'
         selcb=myseason[idxc]
             
         selcb.sort(order='mjd')
         diff=[io-jo for jo,io in zip(selcb['mjd'][:-1], selcb['mjd'][1:])]
-        r.append((key,iseason,'a',np.mean(diff),np.std(diff),np.max(selcb['mjd'])-np.min(selcb['mjd']),corresp['a'],np.median(selcb['airmass']),np.median(selcb['m5sigmadepth']),np.median(selcb['seeing']),np.sum(selcb['exptime'])))
+        m5_med,m5_lower,m5_upper=median(selcb,'m5sigmadepth')
+        r.append((key,iseason,'a',np.mean(diff),np.std(diff),np.max(selcb['mjd'])-np.min(selcb['mjd']),corresp['a'],np.median(selcb['airmass']),m5_med,m5_lower,m5_upper,np.median(selcb['seeing']),np.sum(selcb['exptime'])))
 
         
         """
@@ -513,7 +574,7 @@ for key, vals in myobs.items():
         plt.show()
         """
 
-resu=np.rec.fromrecords(r,names=['fieldid','season','band','mean_cadence','rms_cadence','duration','ib','airmass','m5','seeing','obstime'])
+resu=np.rec.fromrecords(r,names=['fieldid','season','band','mean_cadence','rms_cadence','duration','ib','airmass','m5','m5_lower','m5_upper','seeing','obstime'])
 Nobs=np.rec.fromrecords(ra,names=['season','band','T0','Nbef','Naft','Nmeas'])
 
 print resu
@@ -530,9 +591,10 @@ for fieldid in fieldids:
 
 #Plot_per_Field(resu)
 #Plot_per_Field(resu,what=('duration','obstime'),myleg=('Duration [day]','Observing Time [s]'))
-Plot_Diffs(all_diff,fieldname,fieldids,fieldcolors)
+#Plot_Diffs(all_diff,fieldname,fieldids,fieldcolors)
 #Plot_Obs_per_Field(resu)
 #Plot_Cadence_per_Year(resu)
 #Plot_Nobs(Nobs)
 #Plot_median(resu,fieldids,fieldcolors)
+Plot_median_m5(resu,fieldname, fieldids,filtercolors)
 plt.show()

@@ -120,6 +120,7 @@ class Ana_Simu:
             #print np.unique(val[idx]['fit_status'])
             for keyb in range(4):
                 idraw[keyb]+=1
+            print 'Nentries',len(val),np.unique(val['z'])
 
             sel=val.copy()
             selb=val.copy()
@@ -174,38 +175,38 @@ class Ana_Simu:
             #self.Plot_Eff(axca,val,seld,'z',dict_ana[key].colorfig,dict_ana[key].season,key,3,idraw[3],self.zmin,self.zmax,self.bin_z)
             
             #Efficiency per season vs T0 plot
-            if dict_ana[key].season ==0:
-                idraw[4]+=1
-                min_T0=np.min(val['T0'])
-                max_T0=np.max(val['T0'])
-                bin_T0=5.
-                min_z=0.
-                max_z=0.1
-                sel_val=self.Select('z',val,min_z,max_z)
-                sel_sel=self.Select('z',sel,min_z,max_z)
-                sel_selb=self.Select('z',selb,min_z,max_z)
-                sel_selc=self.Select('z',selc,min_z,max_z)
-                sel_seld=self.Select('z',seld,min_z,max_z)
-                """
-                mmin_T0=61640
-                mmax_T0=61650
-
-                sel_val=self.Select('T0',sel_val,mmin_T0,mmax_T0)
-                sel_sel=self.Select('T0',sel_sel,mmin_T0,mmax_T0)
-                sel_selb=self.Select('T0',sel_selb,mmin_T0,mmax_T0)
-                sel_selc=self.Select('T0',sel_selc,mmin_T0,mmax_T0)
-                sel_seld=self.Select('T0',sel_seld,mmin_T0,mmax_T0)
-                
-                test=self.Select('T0',sel_val,mmin_T0,mmax_T0)
-                testb=self.Select('phase_first',test,-5.,1000.)
-                #testb=self.Select('phase_last',test,-999,20.)
-                testb=testb[np.where(testb['status']=='go_fit')]
-                print len(test),len(testb),testb['phase_first'],testb['T0'],testb['X1'],testb['Color'],testb['z'],testb['phase_last'],test['phase_last']
-                """
-
             
-                self.Plot_Eff(axaa,sel_val,sel_sel,'T0',dict_ana[key].colorfig,dict_ana[key].season,key,4,idraw[4],min_T0,max_T0,bin_T0,dict_obs[key][dict_ana[key].season])
-                self.Plot_Eff(axcaa,sel_val,sel_selb,'T0',dict_ana[key].colorfig,dict_ana[key].season,key,5,idraw[1],min_T0,max_T0,bin_T0)
+            idraw[4]+=1
+            min_T0=np.min(val['T0'])
+            max_T0=np.max(val['T0'])
+            bin_T0=2.
+            min_z=0.3
+            max_z=0.4
+            sel_val=self.Select('z',val,min_z,max_z)
+            sel_sel=self.Select('z',sel,min_z,max_z)
+            sel_selb=self.Select('z',selb,min_z,max_z)
+            sel_selc=self.Select('z',selc,min_z,max_z)
+            sel_seld=self.Select('z',seld,min_z,max_z)
+            """
+            mmin_T0=61640
+            mmax_T0=61650
+            
+            sel_val=self.Select('T0',sel_val,mmin_T0,mmax_T0)
+            sel_sel=self.Select('T0',sel_sel,mmin_T0,mmax_T0)
+            sel_selb=self.Select('T0',sel_selb,mmin_T0,mmax_T0)
+            sel_selc=self.Select('T0',sel_selc,mmin_T0,mmax_T0)
+            sel_seld=self.Select('T0',sel_seld,mmin_T0,mmax_T0)
+            
+            test=self.Select('T0',sel_val,mmin_T0,mmax_T0)
+            testb=self.Select('phase_first',test,-5.,1000.)
+            #testb=self.Select('phase_last',test,-999,20.)
+            testb=testb[np.where(testb['status']=='go_fit')]
+            print len(test),len(testb),testb['phase_first'],testb['T0'],testb['X1'],testb['Color'],testb['z'],testb['phase_last'],test['phase_last']
+            """
+            
+            print 'before T0',len(sel_val),len(sel_sel)
+            self.Plot_Eff(axaa,sel_val,sel_sel,'T0',dict_ana[key].colorfig,dict_ana[key].season,key,4,idraw[4],min_T0,max_T0,bin_T0,dict_obs[key][dict_ana[key].season])
+            self.Plot_Eff(axcaa,sel_val,sel_sel,'T0',dict_ana[key].colorfig,dict_ana[key].season,key,5,idraw[1],min_T0,max_T0,bin_T0)
                 #self.Plot_Eff(axcaa,sel_val,sel_selb,'T0',dict_ana[key].colorfig,dict_ana[key].season,key,1,idraw[1],min_T0,max_T0,bin_T0)
                 #self.Plot_Eff(axcaa,sel_val,sel_selc,'T0',dict_ana[key].colorfig,dict_ana[key].season,key,2,idraw[2],min_T0,max_T0,bin_T0)
                 #self.Plot_Eff(axcaa,sel_val,sel_seld,'T0',dict_ana[key].colorfig,dict_ana[key].season,key,3,idraw[3],min_T0,max_T0,bin_T0)
@@ -233,7 +234,7 @@ class Ana_Simu:
         axaa.set_title(title)
         axaa.set_xlabel('DayMax [day]')
         axaa.set_ylim([0.,1.05])
-        #axcaa.set_ylim([0.,1.05])
+        #axcaa.set_ylim([0.,10000.])
 
         #axa.set_xlim(self.zmin,self.zmax+0.01)
         nsntot_str=str(int(self.nsn_tot))+'$\pm$'+str(int(np.power(self.err_tot,0.5)))
@@ -274,7 +275,6 @@ class Ana_Simu:
 
             axbb[j/2][k].hist(tab_resu[vals],bins=10,histtype='step')
             
-        
             axbb[j/2][k].set_xlabel(r''+vals+'_sim',{'fontsize': fontsize})
             axbb[j/2][k].set_ylabel(r'Number of Entries',{'fontsize': fontsize})
             print vals,np.mean(tab_resu[vals]),np.std(tab_resu[vals])
@@ -317,6 +317,8 @@ class Ana_Simu:
 
     def Plot_Eff_Indiv(self,axc,sela,selb,varname,tot_label,ll,color,season,idraw,icount,min_bin,max_bin,delta_bin,obs=None):
 
+        filtercolors = {'u':'b', 'g':'c', 'r':'g', 'i':'y', 'z':'r', 'y':'m'}
+
         fontsize=12
         bin_center, ratio, ratio_err,norm,norm_err= self.Histo_ratio(sela,selb,varname,min_bin,max_bin,delta_bin)
         #tot_label.append(axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=marker, mfc=colors[key], mec=colors[key], ms=8, linestyle=myfmt[i],color='k',label=ll))
@@ -337,8 +339,11 @@ class Ana_Simu:
             if obs is not None:
                    #print 'yyyyyyyyy',np.min(obs['mjd']),np.max(obs['mjd'])
                    idx=obs['band']!= 'LSSTPG::u'
-                   print 'season obs ',season
-                   axc.plot(obs['mjd'][idx],[0.5]*len(obs['mjd'][idx]),'b*')
+                   print 'season obs ',season,len(sela),len(selb)
+                   axc.plot(obs['mjd'][idx],[0.6]*len(obs['mjd'][idx]),'k*')
+                   for icol,f in enumerate('grizy'):
+                       idxb=obs['band']== 'LSSTPG::'+f
+                       axc.plot(obs['mjd'][idxb],[0.5-0.1*icol]*len(obs['mjd'][idxb]),filtercolors[f]+'*')
             if idraw == 0:
                 axc.set_xlim([min_bin,max_bin])
         else:
@@ -364,10 +369,18 @@ class Ana_Simu:
                 axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season],  mfc=self.color[season], mec=self.color[season], ms=8, linestyle=myls,color='k')
             else:
                 #print 'aloo',sela.dtype
-                sela.sort(order='T0') 
-                curve = interpolate.interp1d(sela['T0'],sela['SNR_i'])
-                print curve(bin_center)
-                axc.errorbar(bin_center,curve(bin_center),color='k')
+                print selb.dtype,len(selb),len(sela)
+                selb.sort(order='T0')
+                #curve = interpolate.interp1d(selb['T0'],selb['SNR_tot'])
+                #axc.errorbar(bin_center,curve(bin_center),color='k')
+                axc.errorbar(selb['T0'],selb['SNR_tot'],color='k')
+                print selb.dtype
+                for f in 'grizy':
+                    #curve = interpolate.interp1d(sela['T0'],sela['SNR_'+f]/(sela['N_aft_'+f]+sela['N_bef_'+f]))
+                    #curve = interpolate.interp1d(selb['T0'],selb['SNR_'+f])
+                    #print curve(bin_center)
+                    #axc.errorbar(bin_center,curve(bin_center),color=filtercolors[f])
+                    axc.errorbar(selb['T0'],selb['SNR_'+f],color=filtercolors[f])
             #axc.errorbar(bin_center,ratio, yerr=ratio_err,marker=self.ms[season],  mfc=color, mec=color, ms=8, linestyle=myls,color='k',label=ll)
             axc.set_ylabel('Fraction of Events') 
             

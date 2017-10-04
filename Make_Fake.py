@@ -165,13 +165,13 @@ class Make_Obs:
         #myweights=dict(zip([i for i in range(1,int(cadence)+5)],[0.,0.1,0.7,0.05,0.05,0.05,0.05]))#122
         #myweights=dict(zip([i for i in range(1,int(cadence)+5)],[0.,0.,0.7,0.05,0.05,0.1,0.1])) #123
         #124->127 : cadence=4
-        if self.fieldid in [120,124,128,132,136,140,144,148]:
+        if self.fieldid in [116,120,124,128,132,136,140,144,148]:
             myweights=dict(zip([i for i in range(int(cadence)-2,int(cadence)+5)],[0.,0.,1.,0.0,0.0,0.0,0.0])) #124
-        if self.fieldid in [121,125,129,133,137,141,145,149]:
+        if self.fieldid in [117,121,125,129,133,137,141,145,149]:
             myweights=dict(zip([i for i in range(int(cadence)-2,int(cadence)+5)],[0.,0.1,0.8,0.1,0.0,0.0,0.0])) #121
-        if self.fieldid in [122,126,130,134,138,142,146,150]:   
+        if self.fieldid in [118,122,126,130,134,138,142,146,150]:   
             myweights=dict(zip([i for i in range(int(cadence)-2,int(cadence)+5)],[0.,0.1,0.7,0.05,0.05,0.05,0.05]))#122
-        if self.fieldid in [123,127,131,135,139,143,147,151]:
+        if self.fieldid in [119,123,127,131,135,139,143,147,151]:
             myweights=dict(zip([i for i in range(int(cadence)-2,int(cadence)+5)],[0.,0.,0.7,0.05,0.05,0.1,0.1])) #123
         
         

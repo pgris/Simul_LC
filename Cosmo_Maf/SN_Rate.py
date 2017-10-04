@@ -75,11 +75,25 @@ class SN_Rate:
         err_rate_sn=np.power(1+my_z, 2.*expn)*np.power(err_rate,2.)+np.power(rate_sn*np.log(1+my_z)*err_expn,2.)
         return rate_sn,np.power(err_rate_sn,0.5)
 
+    def dilday_rate(self,z):
+
+        rate=2.6e-5
+        expn=1.5
+        err_rate=0.01
+        err_expn=0.6
+        my_z = np.copy(z)
+        my_z[my_z>1.] = 1.
+        rate_sn=rate * np.power(1+my_z, expn)
+        err_rate_sn=rate_sn*np.log(1+my_z)*err_expn
+        return rate_sn,err_rate_sn
+
     def sn_rate(self,z):
         if self.rate == 'Ripoche':
             return self.ripoche_rate(z)
         if self.rate == 'Perrett':
             return self.perrett_rate(z)
+        if self.rate == 'Dilday':
+            return self.dilday_rate(z)
 
 
 

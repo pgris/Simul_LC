@@ -5,7 +5,7 @@ from Fit_LC import *
 import cPickle as pkl
 
 class Generate_Single_LC:
-    def __init__(self,z,T0,X1,Color,obs,telescope,inum,min_rf_phase,max_rf_phase,duration,output_q):
+    def __init__(self,z,T0,X1,Color,obs,telescope,inum,min_rf_phase,max_rf_phase,duration,date_obs,output_q):
         
         params={}
         params['z']=z
@@ -26,6 +26,9 @@ class Generate_Single_LC:
         self.outdict['mbsim']=-999.
         self.outdict['observations']=None
         self.duration=duration
+        self.date_obs=date_obs
+        self.min_rf_phase=min_rf_phase
+        self.max_rf_phase=max_rf_phase
 
         self.mysn=Generate_LC(params,telescope=self.telescope)         
 
@@ -75,7 +78,9 @@ class Generate_Single_LC:
             
         pkl_file.close()
         """
-        output_q.put({inum : self.Summary()})
+        resu=self.Summary()
+        #print 'hello resu',inum,len(resu)
+        output_q.put({inum : resu})
         
     def Gen_LC(self):
 
@@ -158,6 +163,7 @@ class Generate_Single_LC:
         self.dict_quality['all']=(0,0)
         self.dict_quality['phase']=(0.0,0.0)
         self.dict_quality['cadence_all']=(0.0,0.0)
+        self.dict_quality['SNR_tot']=0.0
 
         #print 'Quality',self.tot_obs
         if self.tot_obs is not None:
@@ -168,11 +174,13 @@ class Generate_Single_LC:
                 obs_sel.sort('time')
                 n_bef_tot=0
                 n_aft_tot=0
+                self.dict_quality['SNR_tot']=5.*np.power(np.sum(np.power(obs_sel['flux_e_sec']/obs_sel['flux_5sigma_e_sec'],2.)),0.5)
                 #print obs_sel
                 for band in self.bands_rest:
                     idx=obs_sel['band']=='LSST::'+band
                     n_bef, n_aft=self.Get_nums(obs_sel[idx])
                     mean_cadence, rms_cadence=self.Get_cadence(obs_sel[idx])
+                    
             #print 'eheh',band,n_bef,n_aft
                     n_bef_tot+=n_bef
                     n_aft_tot+=n_aft
@@ -232,6 +240,10 @@ class Generate_Single_LC:
         resu['X1']=self.X1
         resu['Color']=self.Color
         resu['duration']=self.duration
+        resu['date_obs']=self.date_obs
+        resu['min_rf_phase']=self.min_rf_phase
+        resu['max_rf_phase']=self.max_rf_phase
+
         #print 'yes',self.duration
         
         if bool(self.dict_quality) is True:
@@ -252,25 +264,27 @@ class Generate_Single_LC:
         #print 'in total',resu['N_bef'],resu['N_aft']
             resu['cad']=self.dict_quality['cadence_all'][0]
             resu['cad_rms']=self.dict_quality['cadence_all'][1]
+            resu['SNR_tot']=self.dict_quality['SNR_tot']
         else:
             for band in self.bands_rest:
                 resu['N_bef_'+band]=0
                 resu['N_aft_'+band]=0
             #print 'resu',band,resu['N_bef_'+band],resu['N_aft_'+band]
-                resu['cad_'+band]=0
-                resu['cad_rms_'+band]=0
-                resu['m5sigma_'+band]=0
-                resu['m5sigma_rms_'+band]=0
+                resu['cad_'+band]=0.0
+                resu['cad_rms_'+band]=0.0
+                resu['m5sigma_'+band]=0.0
+                resu['m5sigma_rms_'+band]=0.0
+                resu['SNR_'+band]=0.0
                 
-            resu['phase_first']=0
-            resu['phase_last']=0
+            resu['phase_first']=0.0
+            resu['phase_last']=0.0
             resu['N_bef']=0
             resu['N_aft']=0
         #print 'in total',resu['N_bef'],resu['N_aft']
-            resu['cad']=0
-            resu['cad_rms']=0 
-        
-
+            resu['cad']=0.0
+            resu['cad_rms']=0.0
+            resu['SNR_tot']=0.0
+            
         resu['status']=self.outdict['status']
         resu['fit_status']=self.outdict['fit_status']
 
@@ -311,5 +325,9 @@ class Generate_Single_LC:
                 #print 'ohohoho',resu['salt2.T0']
         
         #print 'hello',resu.values(),resu.keys()
-       
-        return (np.rec.fromarrays(tuple([res for res in resu.values()]),names=[key for key in resu.keys()]),self.outdict['observations'])
+        restab=np.rec.fromarrays(tuple([res for res in resu.values()]),names=[key for key in resu.keys()])
+        """
+        print restab
+        print 'hhhh',len(resu),self.outdict['observations']
+        """
+        return (restab,self.outdict['observations'])

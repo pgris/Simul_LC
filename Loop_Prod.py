@@ -18,6 +18,7 @@ parser.add_option("-x", "--stretch", type="float", default=2.0, help="filter [%d
 parser.add_option("-c", "--color", type="float", default=-0.2, help="filter [%default]")
 parser.add_option("-d", "--dirmeas", type="string", default="None", help="filter [%default]")
 parser.add_option("-r", "--T0random", type="string", default="yes", help="filter [%default]")
+parser.add_option("--zrandom", type="string", default="yes", help="filter [%default]")
 
 opts, args = parser.parse_args()
 
@@ -31,6 +32,7 @@ color=opts.color
 dirmeas=opts.dirmeas
 T0random=opts.T0random
 zstep=opts.zstep
+zrandom=opts.zrandom
 
 range_loop=np.arange(opts.zmin,opts.zmax,zstep)
 #print range_loop
@@ -41,6 +43,6 @@ if len(range_loop) > nvals:
 
 for z in range_loop:
     #print 'here',z
-    cmd='python batch.py --zmin '+str(z)+' --zmax '+str(z+zstep)+' --nevts '+str(nevts)+' --fieldname '+fieldname+' --fieldid '+str(fieldid)+' --season '+str(season)+' --sntype '+sntype+' --stretch '+str(stretch)+' --color '+str(color)+' --dirmeas '+dirmeas+' --T0random '+T0random
+    cmd='python batch.py --zmin '+str(z)+' --zmax '+str(z+zstep)+' --nevts '+str(nevts)+' --fieldname '+fieldname+' --fieldid '+str(fieldid)+' --season '+str(season)+' --sntype '+sntype+' --stretch '+str(stretch)+' --color '+str(color)+' --dirmeas '+dirmeas+' --T0random '+T0random+' --zrandom '+zrandom
     #print cmd
     os.system(cmd)

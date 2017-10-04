@@ -94,32 +94,48 @@ z_vals=np.arange(zmin,zmax,0.01)
 """
 
 
-n_multi=5
+n_multi=1
 n_batch=N_sn/n_multi
 
 #n_batch=len(T0_vals)
 #n_multi=len(z_vals)
 
+delta=[5.,10.,15.,20.,25.]
+
 for i in range(0,n_batch):
     result_queue = multiprocessing.Queue()
+    date_obs=min_season+20.+float(i)
 #process=[]
     #print 'processing main',i
     #T0=T0_vals[i]
     name_for_output=opts.fieldname+'_'+str(fieldid)+'_'+str(zmin)+'_'+str(zmax)+'_X1_'+str(X1)+'_C_'+str(Color)+'_'+str(i)
     for j in range(0,n_multi):
         
-        if T0random == 'yes':
-            T0 = np.random.uniform(min_season,max_season)
-        else:
-            T0=0
-
         if zrandom=='yes':
             z=np.random.uniform(zmin,zmax)
         else:
             z=zmin
 
-        
-        
+
+        if T0random == 'yes':
+            T0 = np.random.uniform(min_season,max_season)
+        else:
+            T0=0
+            T0=date_obs-delta[j]
+            T0=date_obs-max_rf_phase*(1.+z)
+
+        window_max=date_obs
+        window_min=date_obs-2.*np.abs(T0-date_obs)
+        window_min=T0+min_rf_phase*(1.+z)
+
+       
+        """
+        min_rf_phase=(window_min-T0)/(1.+z)
+        max_rf_phase=(window_max-T0)/(1.+z)
+        """
+
+        #print 'hello',i,j,date_obs,min_season,window_min, window_max, T0,min_rf_phase,max_rf_phase
+
         #z=z_vals[j]
 
         X1_val=X1
@@ -131,7 +147,7 @@ for i in range(0,n_batch):
 
         #print 'hello I will process',X1_val,Color_val
         #print 'Processing',j,T0,z
-        p=multiprocessing.Process(name='Subprocess-'+str(i),target=Generate_Single_LC,args=(z,T0,X1_val,Color_val,myseason,telescope,j,min_rf_phase,max_rf_phase,duration,result_queue))
+        p=multiprocessing.Process(name='Subprocess-'+str(i),target=Generate_Single_LC,args=(z,T0,X1_val,Color_val,myseason,telescope,j,min_rf_phase,max_rf_phase,duration,date_obs,result_queue))
     #process.append(p)
         p.start()
     
@@ -148,34 +164,38 @@ for i in range(0,n_batch):
     for j in range(0,n_multi):
         #print 'hello there',resultdict[j].dtype
         
-        if tot_summary is None:
+        if tot_summary is None and resultdict[j][0] is not None:
             tot_summary=resultdict[j][0]
             #print 'there',tot_summary
         else:
             #print 'careful',tot_summary.dtype
-            #print 'carefulb',resultdict[j][0].dtype,resultdict[j][0]
-            tot_summary=np.vstack((tot_summary,resultdict[j][0]))
+            #print 'carefulb',resultdict[j][0]
+            if resultdict[j][0] is not None:
+                tot_summary=np.vstack((tot_summary,resultdict[j][0]))
 
-        if tot_obs is None:
+        if tot_obs is None and resultdict[j][1] is not None:
             tot_obs=resultdict[j][1]
             #print 'there',tot_obs
         else:
             #print 'careful',tot_obs.dtype
             #print 'carefulb',resultdict[j][1]
-            tot_obs=vstack([tot_obs,resultdict[j][1]])
+            if resultdict[j][1] is not None:
+                tot_obs=vstack([tot_obs,resultdict[j][1]])
 
 
-    pkl_file = open(outdir+'/'+name_for_output+'.pkl','wb')
-    
-    pkl.dump(tot_summary, pkl_file)
-    
-    pkl_file.close()
+    if tot_summary is not None:
+        pkl_file = open(outdir+'/'+name_for_output+'.pkl','wb')
+        
+        pkl.dump(tot_summary, pkl_file)
+        
+        pkl_file.close()
 
-    pkl_file = open(outdir_obs+'/'+name_for_output+'.pkl','wb')
-    
-    pkl.dump(tot_obs, pkl_file)
-    
-    pkl_file.close()
+    if tot_obs is not None:
+        pkl_file = open(outdir_obs+'/'+name_for_output+'.pkl','wb')
+        
+        pkl.dump(tot_obs, pkl_file)
+        
+        pkl_file.close()
     
 
 print 'total elapse time',time.time()-time_begin

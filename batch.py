@@ -18,6 +18,7 @@ parser.add_option("-x", "--stretch", type="float", default=2.0, help="filter [%d
 parser.add_option("-c", "--color", type="float", default=-0.2, help="filter [%default]")
 parser.add_option("-d", "--dirmeas", type="string", default="None", help="filter [%default]")
 parser.add_option("-r", "--T0random", type="string", default="No", help="filter [%default]")
+parser.add_option("--zrandom", type="string", default="yes", help="filter [%default]")
 
 opts, args = parser.parse_args()
 
@@ -32,8 +33,9 @@ stretch=opts.stretch
 color=opts.color
 dirmeas=opts.dirmeas
 T0random=opts.T0random
+zrandom=opts.zrandom
 
-cmd='python simu_for_cadence.py --zmin '+str(zmin)+' --zmax '+str(zmax)+' --nevts '+str(nevts)+' --fieldname '+fieldname+' --fieldid '+str(fieldid)+' --season '+str(season)+' --sntype '+sntype+' --stretch '+str(stretch)+' --color '+str(color)+' --dirmeas '+dirmeas+' --T0random '+T0random
+cmd='python simu_for_cadence.py --zmin '+str(zmin)+' --zmax '+str(zmax)+' --nevts '+str(nevts)+' --fieldname '+fieldname+' --fieldid '+str(fieldid)+' --season '+str(season)+' --sntype '+sntype+' --stretch '+str(stretch)+' --color '+str(color)+' --dirmeas '+dirmeas+' --T0random '+T0random+' --zrandom '+zrandom
 
 cwd = os.getcwd()
 dirScript= cwd + "/scripts"
